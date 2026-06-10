@@ -1,0 +1,191 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── Linux ──
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            artifact: rustm-x86_64-linux
+            ext: ''
+
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            artifact: rustm-aarch64-linux
+            ext: ''
+
+          # ── macOS ──
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            artifact: rustm-x86_64-macos
+            ext: ''
+
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            artifact: rustm-aarch64-macos
+            ext: ''
+
+          # ── Windows ──
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            artifact: rustm-x86_64-windows
+            ext: .exe
+
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            artifact: rustm-aarch64-windows
+            ext: .exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ matrix.target }}-cargo-
+
+      # ── Cross-compilation setup ──
+
+      - name: Install cross-compilation tools (Linux aarch64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Configure cargo for aarch64-linux
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          mkdir -p .cargo
+          cat >> .cargo/config.toml << 'EOF'
+          [target.aarch64-unknown-linux-gnu]
+          linker = "aarch64-linux-gnu-gcc"
+          EOF
+
+      - name: Install cross-compilation tools (Windows aarch64)
+        if: matrix.target == 'aarch64-pc-windows-msvc'
+        run: |
+          rustup target add aarch64-pc-windows-msvc
+
+      # ── Build ──
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Strip binary (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: strip target/${{ matrix.target }}/release/rustm${{ matrix.ext }}
+
+      # ── Package ──
+
+      - name: Create archive (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../${{ matrix.artifact }}.tar.gz rustm
+          cd ../../..
+
+      - name: Create archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path "target\${{ matrix.target }}\release\rustm.exe" `
+            -DestinationPath "${{ matrix.artifact }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}.tar.gz
+            ${{ matrix.artifact }}.zip
+          if-no-files-found: ignore
+          retention-days: 1
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: ls -laR artifacts/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: rustm ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## ⚡ rustm ${{ github.ref_name }} — Blazing-fast Rust/Cargo Build Compiler & Optimizer
+
+            ### Downloads
+
+            | Platform | Architecture | File |
+            |----------|-------------|------|
+            | Linux | x86_64 | `rustm-x86_64-linux.tar.gz` |
+            | Linux | aarch64 | `rustm-aarch64-linux.tar.gz` |
+            | macOS | x86_64 (Intel) | `rustm-x86_64-macos.tar.gz` |
+            | macOS | aarch64 (Apple Silicon) | `rustm-aarch64-macos.tar.gz` |
+            | Windows | x86_64 | `rustm-x86_64-windows.zip` |
+            | Windows | aarch64 | `rustm-aarch64-windows.zip` |
+
+            ### Install
+
+            **Linux/macOS:**
+            ```bash
+            tar xzf rustm-$(uname -m)-$(uname -s | tr A-Z a-z).tar.gz
+            chmod +x rustm
+            sudo cp rustm /usr/local/bin/
+            ```
+
+            **Windows:**
+            ```powershell
+            Expand-Archive rustm-x86_64-windows.zip
+            copy rustm.exe C:\Users\you\.cargo\bin\
+            ```
+
+            ### What's new
+
+            See [README.md](https://github.com/mew-sh/rustm#readme) for full feature list.
+
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
