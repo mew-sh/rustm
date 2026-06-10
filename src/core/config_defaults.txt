@@ -1,0 +1,7 @@
+fn default_profile() -> String { "fastest".to_string() }
+fn default_true() -> bool { true }
+fn default_lto() -> String { "thin".to_string() }
+fn default_cache_size() -> u32 { 10 }
+fn default_linker() -> String { "auto".to_string() }
+fn default_icf() -> String { "safe".to_string() }
+fn default_build_id() -> String { "fast".to_string() }

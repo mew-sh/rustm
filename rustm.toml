@@ -1,0 +1,88 @@
+# rustm configuration
+# https://github.com/rui314/mold — fastest linker
+#
+# mold's key optimizations:
+#   - Parallel symbol resolution (fine-grained mutex)
+#   - mmap-based I/O (zero-copy file reading)
+#   - Multi-threaded ICF (Identical Code Folding)
+#   - TLGP & LD→LE relaxation (eliminates GOT indirection)
+#   - Compact .dyn section support
+#   - Fast build-ID (~zero cost)
+
+# Build optimization settings
+[build]
+default_profile = "fastest"
+incremental = true
+strip = true
+lto = "thin"
+# target = "x86_64-unknown-linux-gnu"
+# codegen_units = 16
+# rustflags = ["-C", "target-cpu=native"]
+
+# Cache settings
+[cache]
+sccache = true
+max_size_gb = 10
+local_cache = true
+
+# Linker settings (mold optimization)
+# mold is 5-10x faster than default ld, 2-3x faster than lld
+# It achieves this through:
+#   1. Parallel symbol resolution (no global lock like lld)
+#   2. mmap I/O (zero-copy, no heap buffering)
+#   3. Multi-threaded ICF (parallel hash + compare)
+#   4. Built-in TLGP relaxation
+
+[linker]
+preferred = "auto"
+# release_mode = false
+icf = "safe"
+relax = true
+threads = 0
+build_id = "fast"
+compact_dyn = false
+relro = true
+bind_now = false
+
+# Parallel build settings
+[parallel]
+# jobs = 0  # 0 = auto-detect
+
+# Profile presets
+#
+# fastest:     Maximum optimization stack (DEFAULT) - target-cpu=native + thin LTO + ICF
+# dev-fast:     Fastest dev iteration (codegen-units=256, no LTO)
+# balanced:     Good tradeoff (thin LTO, opt-level=2)
+# dev-check:   Fastest cargo check (no debug info)
+# release-max:  Maximum performance (fat LTO, codegen-units=1, mold ICF=all)
+# size-opt:     Minimal binary (opt-level=z, ICF=all)
+
+[profiles.dev-fast]
+lto = "none"
+codegen_units = 256
+opt_level = "0"
+debug = "2"
+incremental = true
+
+[profiles.release-max]
+lto = "fat"
+codegen_units = 1
+opt_level = "3"
+strip = true
+panic = "abort"
+incremental = false
+rustflags = ["-C", "target-cpu=native"]
+
+[profiles.release-fast]
+lto = "thin"
+codegen_units = 16
+opt_level = "3"
+strip = true
+incremental = false
+
+[profiles.size-opt]
+lto = "thin"
+codegen_units = 1
+opt_level = "z"
+strip = true
+panic = "abort"
