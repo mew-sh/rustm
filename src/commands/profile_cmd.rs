@@ -1,30 +1,47 @@
 //! Profile command implementation — includes mold optimization info
 
 use crate::commands::cli;
-use crate::core::profile::ProfileResolver;
 use crate::core::config::RustmConfig;
+use crate::core::profile::ProfileResolver;
 use colored::*;
 
 pub fn execute(args: cli::ProfileArgs) -> Result<(), String> {
-    let project_dir = RustmConfig::find_project_root()
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")));
-    
+    let project_dir = RustmConfig::find_project_root().unwrap_or_else(|| {
+        std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+    });
+
     let config = RustmConfig::load(&project_dir);
     let resolver = ProfileResolver::new(&config.profiles);
 
     if let Some(ref profile_name) = args.show {
         match resolver.describe(profile_name) {
             Some(desc) => {
-                println!("{} Profile: {}\n", "📋".to_string(), profile_name.cyan().bold());
+                println!(
+                    "{} Profile: {}\n",
+                    "📋".to_string(),
+                    profile_name.cyan().bold()
+                );
                 println!("{}", desc);
-                
+
                 // Show mold optimization tips for release profiles
                 if profile_name.contains("release") || profile_name.contains("size") {
                     println!("\n{} mold optimization recommendations:", "⚡".to_string());
-                    println!("  {} ICF=all — merges identical functions, reduces size 5-15%", "→".green());
-                    println!("  {} Relaxation — eliminates GOT indirection for faster runtime", "→".green());
-                    println!("  {} Build-ID=fast — nearly zero cost vs SHA-1", "→".green());
-                    println!("  {} Compact .dyn — reduces dynamic section size", "→".green());
+                    println!(
+                        "  {} ICF=all — merges identical functions, reduces size 5-15%",
+                        "→".green()
+                    );
+                    println!(
+                        "  {} Relaxation — eliminates GOT indirection for faster runtime",
+                        "→".green()
+                    );
+                    println!(
+                        "  {} Build-ID=fast — nearly zero cost vs SHA-1",
+                        "→".green()
+                    );
+                    println!(
+                        "  {} Compact .dyn — reduces dynamic section size",
+                        "→".green()
+                    );
                 }
             }
             None => {
@@ -54,19 +71,24 @@ pub fn execute(args: cli::ProfileArgs) -> Result<(), String> {
     let descriptions = resolver.describe_all();
 
     println!("{} Available Build Profiles\n", "⚡".to_string());
-    println!("{} mold's optimizations are applied per-profile:", "⚡".to_string());
+    println!(
+        "{} mold's optimizations are applied per-profile:",
+        "⚡".to_string()
+    );
     println!("  dev profiles:  ICF=none (fastest compile)");
     println!("  release profiles: ICF=safe/all + relaxation (smallest/fastest binary)\n");
-    
+
     for desc in &descriptions {
         println!("{}", desc);
     }
 
-    println!("\n{} Use: {} to see details of a specific profile",
+    println!(
+        "\n{} Use: {} to see details of a specific profile",
         "💡".to_string(),
         "rustm profile --show <name>".cyan()
     );
-    println!("{} Use: {} to see mold optimization comparison",
+    println!(
+        "{} Use: {} to see mold optimization comparison",
         "💡".to_string(),
         "rustm profile --compare".cyan()
     );

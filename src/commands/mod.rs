@@ -1,16 +1,16 @@
 //! CLI commands module
 
-pub mod cli;
+pub mod bench_cmd;
+pub mod bolt_cmd;
 pub mod build_cmd;
 pub mod clean_cmd;
+pub mod cli;
 pub mod config_cmd;
-pub mod bench_cmd;
-pub mod profile_cmd;
 pub mod doctor_cmd;
 pub mod init_cmd;
-pub mod pgo_cmd;
 pub mod llvm_cmd;
-pub mod bolt_cmd;
+pub mod pgo_cmd;
+pub mod profile_cmd;
 
 use cli::Cli;
 

@@ -29,13 +29,11 @@ pub struct CacheManager {
 impl CacheManager {
     pub fn new(config: &CacheConfig) -> Self {
         let sccache_path = which::which("sccache").ok();
-        let cache_dir = config.dir.as_ref()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                dirs::home_dir()
-                    .map(|h| h.join(".rustm").join("cache"))
-                    .unwrap_or_else(|| PathBuf::from(".rustm-cache"))
-            });
+        let cache_dir = config.dir.as_ref().map(PathBuf::from).unwrap_or_else(|| {
+            dirs::home_dir()
+                .map(|h| h.join(".rustm").join("cache"))
+                .unwrap_or_else(|| PathBuf::from(".rustm-cache"))
+        });
 
         Self {
             config: config.clone(),
@@ -84,10 +82,9 @@ impl CacheManager {
                 .output()
             {
                 if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-                    let hits = json.get("cache_hits")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0);
-                    let misses = json.get("cache_misses")
+                    let hits = json.get("cache_hits").and_then(|v| v.as_u64()).unwrap_or(0);
+                    let misses = json
+                        .get("cache_misses")
                         .and_then(|v| v.as_u64())
                         .unwrap_or(0);
                     return (hits, misses);

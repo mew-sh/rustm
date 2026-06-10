@@ -13,22 +13,24 @@ pub struct ParallelOptimizer {
 
 impl ParallelOptimizer {
     pub fn new(config: &ParallelConfig) -> Self {
-        Self { _config: config.clone() }
+        Self {
+            _config: config.clone(),
+        }
     }
 
     /// Calculate optimal number of parallel jobs
     pub fn optimal_jobs(&self) -> u32 {
         let cpu_count = self.cpu_count();
-        
+
         // Use more jobs than CPUs for I/O-bound compilation
         // Rust compilation is both CPU and I/O intensive
         let io_multiplier = 1.5;
         let memory_factor = self.memory_factor();
-        
+
         let optimal = ((cpu_count as f64 * io_multiplier * memory_factor) as u32)
             .max(1)
             .min(cpu_count * 2); // Don't go above 2x CPU count
-        
+
         optimal
     }
 

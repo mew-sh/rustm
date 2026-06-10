@@ -1,6 +1,6 @@
 //! CLI definition using clap derive
 
-use clap::{Parser, Subcommand, Args};
+use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(

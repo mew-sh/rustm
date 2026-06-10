@@ -14,7 +14,11 @@ pub fn system_info() -> String {
 /// Detect native CPU target
 #[allow(dead_code)]
 pub fn native_target() -> String {
-    format!("{}-unknown-{}", std::env::consts::ARCH, std::env::consts::OS)
+    format!(
+        "{}-unknown-{}",
+        std::env::consts::ARCH,
+        std::env::consts::OS
+    )
 }
 
 /// Check if a command is available

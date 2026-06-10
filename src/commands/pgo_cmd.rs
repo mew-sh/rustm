@@ -1,9 +1,9 @@
 //! PGO command implementation
 
 use crate::commands::cli;
+use crate::core::benchmark::{BuildHistory, BuildRecord};
 use crate::core::config::RustmConfig;
 use crate::core::engine::{BuildEngine, BuildRequest, BuildType, print_build_summary};
-use crate::core::benchmark::{BuildRecord, BuildHistory};
 use crate::core::llvm::LlvmOptimizer;
 
 pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
@@ -18,23 +18,41 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
 
     if args.generate {
         // Step 1: Build instrumented binary
-        println!("\n{} PGO Step 1: Building instrumented binary...", "🎯".to_string());
-        println!("{} This binary will collect profile data during execution.\n", "→".to_string());
+        println!(
+            "\n{} PGO Step 1: Building instrumented binary...",
+            "🎯".to_string()
+        );
+        println!(
+            "{} This binary will collect profile data during execution.\n",
+            "→".to_string()
+        );
 
         let mut config = RustmConfig::load(&project_dir);
-        let pgo_path = args.path.clone()
+        let pgo_path = args
+            .path
+            .clone()
             .unwrap_or_else(|| "./target/pgo-profiles".to_string());
 
         // Inject PGO generate flags via config
-        config.env.insert("RUSTM_PGO_STAGE".to_string(), "generate".to_string());
-        config.env.insert("RUSTM_PGO_PATH".to_string(), pgo_path.clone());
-        config.build.rustflags.push("-C profile-generate=".to_string() + &pgo_path);
+        config
+            .env
+            .insert("RUSTM_PGO_STAGE".to_string(), "generate".to_string());
+        config
+            .env
+            .insert("RUSTM_PGO_PATH".to_string(), pgo_path.clone());
+        config
+            .build
+            .rustflags
+            .push("-C profile-generate=".to_string() + &pgo_path);
 
         let engine = BuildEngine::new(config);
 
         let request = BuildRequest {
             build_type: BuildType::Build,
-            profile_name: args.profile.clone().or_else(|| Some("release-fast".to_string())),
+            profile_name: args
+                .profile
+                .clone()
+                .or_else(|| Some("release-fast".to_string())),
             release: true,
             target: None,
             features: vec![],
@@ -56,7 +74,10 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
         let result = engine.build(&request)?;
 
         if result.success {
-            println!("\n{} Instrumented binary built successfully!", "✅".to_string());
+            println!(
+                "\n{} Instrumented binary built successfully!",
+                "✅".to_string()
+            );
             println!("\n{} Next steps:", "→".to_string());
             println!("  1. Run your binary with representative workload:");
             println!("     ./target/release/your-binary <args>");
@@ -89,7 +110,9 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
 
         let optimizer = LlvmOptimizer::new(&Default::default());
         let profile_dir = std::path::PathBuf::from(
-            args.path.clone().unwrap_or_else(|| "./target/pgo-profiles".to_string())
+            args.path
+                .clone()
+                .unwrap_or_else(|| "./target/pgo-profiles".to_string()),
         );
         let output_path = std::path::PathBuf::from("./target/pgo-profiles/merged.profdata");
 
@@ -110,23 +133,41 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
 
     if args.use_profile {
         // Step 4: Rebuild with profile data
-        println!("\n{} PGO Step 4: Rebuilding with profile data...", "🎯".to_string());
-        println!("{} Using PGO data to optimize hot code paths.\n", "→".to_string());
+        println!(
+            "\n{} PGO Step 4: Rebuilding with profile data...",
+            "🎯".to_string()
+        );
+        println!(
+            "{} Using PGO data to optimize hot code paths.\n",
+            "→".to_string()
+        );
 
         let mut config = RustmConfig::load(&project_dir);
-        let pgo_path = args.path.clone()
+        let pgo_path = args
+            .path
+            .clone()
             .unwrap_or_else(|| "./target/pgo-profiles/merged.profdata".to_string());
 
         // Inject PGO use flags
-        config.env.insert("RUSTM_PGO_STAGE".to_string(), "use".to_string());
-        config.env.insert("RUSTM_PGO_PATH".to_string(), pgo_path.clone());
-        config.build.rustflags.push("-C profile-use=".to_string() + &pgo_path);
+        config
+            .env
+            .insert("RUSTM_PGO_STAGE".to_string(), "use".to_string());
+        config
+            .env
+            .insert("RUSTM_PGO_PATH".to_string(), pgo_path.clone());
+        config
+            .build
+            .rustflags
+            .push("-C profile-use=".to_string() + &pgo_path);
 
         let engine = BuildEngine::new(config);
 
         let request = BuildRequest {
             build_type: BuildType::Build,
-            profile_name: args.profile.clone().or_else(|| Some("release-max".to_string())),
+            profile_name: args
+                .profile
+                .clone()
+                .or_else(|| Some("release-max".to_string())),
             release: true,
             target: None,
             features: vec![],
@@ -167,10 +208,16 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
     }
 
     if args.run {
-        println!("\n{} PGO Step 2: Run your binary with representative workload", "🎯".to_string());
+        println!(
+            "\n{} PGO Step 2: Run your binary with representative workload",
+            "🎯".to_string()
+        );
         println!("\n{} Run:", "→".to_string());
         println!("  ./target/release/your-binary <your-benchmark-args>");
-        println!("\n{} Profile data will be written to: ./target/pgo-profiles/", "→".to_string());
+        println!(
+            "\n{} Profile data will be written to: ./target/pgo-profiles/",
+            "→".to_string()
+        );
         println!("{} After running, merge profiles:", "→".to_string());
         println!("  rustm pgo merge");
 

@@ -1,27 +1,35 @@
 //! Build command implementation — includes LLVM/PGO + Cranelift integration
 
 use crate::commands::cli;
+use crate::core::benchmark::{BuildHistory, BuildRecord};
 use crate::core::config::RustmConfig;
 use crate::core::engine::{BuildEngine, BuildRequest, BuildType, print_build_summary};
-use crate::core::benchmark::{BuildRecord, BuildHistory};
 use crate::core::llvm::detect_cpu_features;
 
 pub fn execute(args: cli::BuildArgs) -> Result<(), String> {
     let project_dir = RustmConfig::find_project_root()
         .ok_or("Not in a Rust project directory. No Cargo.toml found.")?;
-    
+
     let mut config = RustmConfig::load(&project_dir);
 
     // Handle PGO flags
     if args.pgo_generate {
-        let pgo_path = args.pgo_path.clone()
+        let pgo_path = args
+            .pgo_path
+            .clone()
             .unwrap_or_else(|| "./target/pgo-profiles".to_string());
-        config.env.insert("RUSTM_PGO_STAGE".to_string(), "generate".to_string());
+        config
+            .env
+            .insert("RUSTM_PGO_STAGE".to_string(), "generate".to_string());
         config.env.insert("RUSTM_PGO_PATH".to_string(), pgo_path);
     } else if args.pgo_use {
-        let pgo_path = args.pgo_path.clone()
+        let pgo_path = args
+            .pgo_path
+            .clone()
             .unwrap_or_else(|| "./target/pgo-profiles/merged.profdata".to_string());
-        config.env.insert("RUSTM_PGO_STAGE".to_string(), "use".to_string());
+        config
+            .env
+            .insert("RUSTM_PGO_STAGE".to_string(), "use".to_string());
         config.env.insert("RUSTM_PGO_PATH".to_string(), pgo_path);
     }
 
@@ -30,7 +38,10 @@ pub fn execute(args: cli::BuildArgs) -> Result<(), String> {
         let features = detect_cpu_features();
         if !features.is_empty() {
             let feature_str = features.join(",");
-            config.build.rustflags.push(format!("-C target-feature={}", feature_str));
+            config
+                .build
+                .rustflags
+                .push(format!("-C target-feature={}", feature_str));
         }
     }
 
@@ -79,9 +90,8 @@ pub fn execute(args: cli::BuildArgs) -> Result<(), String> {
 }
 
 pub fn execute_run(args: cli::RunArgs) -> Result<(), String> {
-    let project_dir = RustmConfig::find_project_root()
-        .ok_or("Not in a Rust project directory.")?;
-    
+    let project_dir = RustmConfig::find_project_root().ok_or("Not in a Rust project directory.")?;
+
     let config = RustmConfig::load(&project_dir);
     let engine = BuildEngine::new(config);
 
@@ -117,9 +127,8 @@ pub fn execute_run(args: cli::RunArgs) -> Result<(), String> {
 }
 
 pub fn execute_check(args: cli::CheckArgs) -> Result<(), String> {
-    let project_dir = RustmConfig::find_project_root()
-        .ok_or("Not in a Rust project directory.")?;
-    
+    let project_dir = RustmConfig::find_project_root().ok_or("Not in a Rust project directory.")?;
+
     let config = RustmConfig::load(&project_dir);
     let engine = BuildEngine::new(config);
 
@@ -155,9 +164,8 @@ pub fn execute_check(args: cli::CheckArgs) -> Result<(), String> {
 }
 
 pub fn execute_test(args: cli::TestArgs) -> Result<(), String> {
-    let project_dir = RustmConfig::find_project_root()
-        .ok_or("Not in a Rust project directory.")?;
-    
+    let project_dir = RustmConfig::find_project_root().ok_or("Not in a Rust project directory.")?;
+
     let config = RustmConfig::load(&project_dir);
     let engine = BuildEngine::new(config);
 
@@ -193,9 +201,8 @@ pub fn execute_test(args: cli::TestArgs) -> Result<(), String> {
 }
 
 pub fn execute_clippy(args: cli::ClippyArgs) -> Result<(), String> {
-    let project_dir = RustmConfig::find_project_root()
-        .ok_or("Not in a Rust project directory.")?;
-    
+    let project_dir = RustmConfig::find_project_root().ok_or("Not in a Rust project directory.")?;
+
     let config = RustmConfig::load(&project_dir);
     let engine = BuildEngine::new(config);
 

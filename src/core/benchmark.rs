@@ -71,7 +71,7 @@ impl BuildHistory {
             .append(true)
             .open(&file)
             .map_err(|e| format!("Failed to open history file: {}", e))?;
-        
+
         f.write_all(line.as_bytes())
             .map_err(|e| format!("Failed to write history: {}", e))
     }
@@ -85,9 +85,14 @@ impl BuildHistory {
         let mut files: Vec<_> = fs::read_dir(&self.history_dir)
             .map_err(|e| format!("Failed to read history dir: {}", e))?
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map(|ext| ext == "jsonl").unwrap_or(false))
+            .filter(|e| {
+                e.path()
+                    .extension()
+                    .map(|ext| ext == "jsonl")
+                    .unwrap_or(false)
+            })
             .collect();
-        
+
         files.sort_by_key(|e| e.file_name());
         files.reverse();
 
@@ -117,8 +122,10 @@ impl BuildHistory {
 
         let mut output = String::new();
         output.push_str(&format!("Last {} builds:\n\n", records.len().min(count)));
-        output.push_str(&format!("{:<5} {:<12} {:<12} {:<8} {:<10} {}\n",
-            "#", "Time", "Profile", "Linker", "Duration", "Status"));
+        output.push_str(&format!(
+            "{:<5} {:<12} {:<12} {:<8} {:<10} {}\n",
+            "#", "Time", "Profile", "Linker", "Duration", "Status"
+        ));
         output.push_str(&"─".repeat(70));
         output.push('\n');
 
@@ -130,27 +137,32 @@ impl BuildHistory {
                 format!("{}ms", record.duration_ms)
             };
             let time_str = &record.timestamp[11..16.min(record.timestamp.len())];
-            output.push_str(&format!("{:<5} {:<12} {:<12} {:<8} {:<10} {}\n",
+            output.push_str(&format!(
+                "{:<5} {:<12} {:<12} {:<8} {:<10} {}\n",
                 i + 1,
                 time_str,
                 record.profile,
                 record.linker,
                 duration,
-                status));
+                status
+            ));
         }
 
         // Calculate averages
         let successful: Vec<_> = records.iter().filter(|r| r.success).collect();
         if !successful.is_empty() {
-            let avg_ms: u128 = successful.iter().map(|r| r.duration_ms).sum::<u128>()
-                / successful.len() as u128;
+            let avg_ms: u128 =
+                successful.iter().map(|r| r.duration_ms).sum::<u128>() / successful.len() as u128;
             let avg = if avg_ms >= 1000 {
                 format!("{:.1}s", avg_ms as f64 / 1000.0)
             } else {
                 format!("{}ms", avg_ms)
             };
-            output.push_str(&format!("\nAverage build time: {} ({} successful builds)\n",
-                avg, successful.len()));
+            output.push_str(&format!(
+                "\nAverage build time: {} ({} successful builds)\n",
+                avg,
+                successful.len()
+            ));
         }
 
         Ok(output)

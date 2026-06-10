@@ -15,19 +15,19 @@
 //! CARGO_PROFILE_* environment variables, which is the correct
 //! Cargo-compatible approach (avoids conflicts with -C embed-bitcode=no).
 
-use crate::core::{RustmConfig, ProfilePreset};
-use crate::core::cache::CacheManager;
-use crate::core::linker::{LinkerSelector, LinkerInfo};
-use crate::core::linker_algo::LinkerAlgorithmConfig;
-use crate::core::profile::ProfileResolver;
-use crate::core::parallel::ParallelOptimizer;
 use crate::core::benchmark::BuildTimer;
-use crate::core::cranelift::{CraneliftBackend, CodegenBackend};
+use crate::core::cache::CacheManager;
+use crate::core::cranelift::{CodegenBackend, CraneliftBackend};
+use crate::core::linker::{LinkerInfo, LinkerSelector};
+use crate::core::linker_algo::LinkerAlgorithmConfig;
 use crate::core::llvm::LlvmOptimizer;
+use crate::core::parallel::ParallelOptimizer;
+use crate::core::profile::ProfileResolver;
+use crate::core::{ProfilePreset, RustmConfig};
+use colored::*;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use colored::*;
 
 /// Build command type
 #[derive(Debug, Clone, PartialEq)]
@@ -121,47 +121,63 @@ impl BuildEngine {
     /// Execute a build request
     pub fn build(&self, request: &BuildRequest) -> Result<BuildResult, String> {
         let timer = BuildTimer::new();
-        
+
         // Print banner
         self.print_banner(request);
 
         // Resolve profile
-        let profile_name = request.profile_name.clone()
+        let profile_name = request
+            .profile_name
+            .clone()
             .unwrap_or_else(|| self.config.build.default_profile.clone());
-        let profile = self.profile_resolver.resolve(&profile_name, request.release)?;
-        
+        let profile = self
+            .profile_resolver
+            .resolve(&profile_name, request.release)?;
+
         // Determine linker — applies mold optimizations automatically
         let linker_info = self.linker_selector.select()?;
-        
+
         // Determine codegen backend
         let backend = self.resolve_codegen_backend(request, &profile_name, request.release)?;
         let cranelift_used = backend == CodegenBackend::Cranelift;
         let backend_name = backend.to_string();
-        
+
         // Set up cache
         let cache_status = self.cache_manager.setup()?;
-        
+
         // Calculate parallel jobs
-        let jobs = request.jobs
+        let jobs = request
+            .jobs
             .or(Some(self.config.parallel.jobs))
             .filter(|&j| j > 0)
             .unwrap_or_else(|| self.parallel_optimizer.optimal_jobs());
-        
+
         // Build cargo command args
         let cargo_args = self.build_cargo_args(request, &profile, &linker_info, jobs)?;
-        
+
         // Build environment variables
         // LTO and profile settings use CARGO_PROFILE_* env vars (not RUSTFLAGS)
         // This avoids conflicts with -C embed-bitcode=no in build scripts
         let env_vars = self.build_env_vars(&linker_info, &profile, jobs, &backend, request)?;
-        
+
         // Print optimization summary
         if !request.quiet {
-            self.print_optimization_summary(&profile_name, &linker_info, jobs, &cache_status, &backend);
+            self.print_optimization_summary(
+                &profile_name,
+                &linker_info,
+                jobs,
+                &cache_status,
+                &backend,
+            );
         }
 
         // Execute cargo
-        let success = self.execute_cargo(&cargo_args, &env_vars, &request.project_dir, request.verbose)?;
+        let success = self.execute_cargo(
+            &cargo_args,
+            &env_vars,
+            &request.project_dir,
+            request.verbose,
+        )?;
         let duration = timer.elapsed_ms();
 
         // Collect mold flags that were applied
@@ -182,19 +198,34 @@ impl BuildEngine {
     }
 
     /// Resolve which codegen backend to use
-    fn resolve_codegen_backend(&self, request: &BuildRequest, profile_name: &str, release: bool) -> Result<CodegenBackend, String> {
+    fn resolve_codegen_backend(
+        &self,
+        request: &BuildRequest,
+        profile_name: &str,
+        release: bool,
+    ) -> Result<CodegenBackend, String> {
         // Priority: CLI flag > config > auto
-        let backend_str = request.codegen_backend.as_ref()
+        let backend_str = request
+            .codegen_backend
+            .as_ref()
             .unwrap_or(&self.config.build.codegen_backend);
-        
+
         let backend: CodegenBackend = backend_str.parse()?;
-        
+
         // Check if Cranelift should actually be used
-        if self.cranelift.should_use_cranelift(backend, profile_name, release) {
+        if self
+            .cranelift
+            .should_use_cranelift(backend, profile_name, release)
+        {
             if !self.cranelift.is_available() {
                 // Warn but don't error — fall back to LLVM
-                eprintln!("{} Cranelift requested but not available, falling back to LLVM", "⚠️".yellow());
-                eprintln!("  Install with: rustup component add rustc_codegen_cranelift --toolchain nightly");
+                eprintln!(
+                    "{} Cranelift requested but not available, falling back to LLVM",
+                    "⚠️".yellow()
+                );
+                eprintln!(
+                    "  Install with: rustup component add rustc_codegen_cranelift --toolchain nightly"
+                );
                 return Ok(CodegenBackend::Llvm);
             }
             Ok(CodegenBackend::Cranelift)
@@ -314,11 +345,19 @@ impl BuildEngine {
         rustflags.extend(linker_info.to_rustflags());
 
         // 4. Advanced linker algorithm flags
-        let algo_config = if request.release { LinkerAlgorithmConfig::release_max() } else { LinkerAlgorithmConfig::dev_fast() };
+        let algo_config = if request.release {
+            LinkerAlgorithmConfig::release_max()
+        } else {
+            LinkerAlgorithmConfig::dev_fast()
+        };
         rustflags.extend(algo_config.to_linker_flags());
 
         // 5. LLVM optimizer flags (target-features, PGO, etc.)
-        if request.target_features || request.pgo_generate || request.pgo_use || request.llvm_remarks {
+        if request.target_features
+            || request.pgo_generate
+            || request.pgo_use
+            || request.llvm_remarks
+        {
             let mut llvm_config = crate::core::llvm::LlvmOptConfig::default();
             if request.target_features {
                 llvm_config.target_features = crate::core::llvm::detect_cpu_features();
@@ -353,56 +392,82 @@ impl BuildEngine {
         // ═══════════════════════════════════════════════════════════
         // CARGO_PROFILE_* — LTO, codegen-units, opt-level, etc.
         // ═══════════════════════════════════════════════════════════
-        
+
         // LTO
         if let Some(ref lto) = profile.lto {
             if lto != "none" {
-                env.insert(format!("CARGO_PROFILE_{}_LTO", profile_env.to_uppercase()), lto.clone());
+                env.insert(
+                    format!("CARGO_PROFILE_{}_LTO", profile_env.to_uppercase()),
+                    lto.clone(),
+                );
             }
         }
 
         // Codegen units
         if let Some(cgu) = profile.codegen_units {
-            env.insert(format!("CARGO_PROFILE_{}_CODEGEN_UNITS", profile_env.to_uppercase()), cgu.to_string());
+            env.insert(
+                format!("CARGO_PROFILE_{}_CODEGEN_UNITS", profile_env.to_uppercase()),
+                cgu.to_string(),
+            );
         }
 
         // Opt level
         if let Some(ref opt) = profile.opt_level {
             if opt != "0" {
-                env.insert(format!("CARGO_PROFILE_{}_OPT_LEVEL", profile_env.to_uppercase()), opt.clone());
+                env.insert(
+                    format!("CARGO_PROFILE_{}_OPT_LEVEL", profile_env.to_uppercase()),
+                    opt.clone(),
+                );
             }
         }
 
         // Strip
         if profile.strip.unwrap_or(false) {
-            env.insert(format!("CARGO_PROFILE_{}_STRIP", profile_env.to_uppercase()), "symbols".to_string());
+            env.insert(
+                format!("CARGO_PROFILE_{}_STRIP", profile_env.to_uppercase()),
+                "symbols".to_string(),
+            );
         }
 
         // Panic strategy
         if let Some(ref panic) = profile.panic {
-            env.insert(format!("CARGO_PROFILE_{}_PANIC", profile_env.to_uppercase()), panic.clone());
+            env.insert(
+                format!("CARGO_PROFILE_{}_PANIC", profile_env.to_uppercase()),
+                panic.clone(),
+            );
         }
 
         // Incremental
         if let Some(inc) = profile.incremental {
-            env.insert(format!("CARGO_PROFILE_{}_INCREMENTAL", profile_env.to_uppercase()), inc.to_string());
+            env.insert(
+                format!("CARGO_PROFILE_{}_INCREMENTAL", profile_env.to_uppercase()),
+                inc.to_string(),
+            );
         }
 
         // Debug info
         if let Some(ref debug) = profile.debug {
-            env.insert(format!("CARGO_PROFILE_{}_DEBUG", profile_env.to_uppercase()), debug.clone());
+            env.insert(
+                format!("CARGO_PROFILE_{}_DEBUG", profile_env.to_uppercase()),
+                debug.clone(),
+            );
         }
 
         // sccache — distributed compilation cache
         if self.cache_manager.is_sccache_active() {
             if let Ok(sccache_path) = which::which("sccache") {
-                env.insert("RUSTC_WRAPPER".to_string(), sccache_path.to_string_lossy().to_string());
+                env.insert(
+                    "RUSTC_WRAPPER".to_string(),
+                    sccache_path.to_string_lossy().to_string(),
+                );
             }
         }
 
         // mold uses parallel threads internally
         if linker_info.name == "mold" {
-            let mold_threads = linker_info.mold_flags.threads
+            let mold_threads = linker_info
+                .mold_flags
+                .threads
                 .unwrap_or_else(|| (jobs as f64 * 0.75).ceil() as u32);
             env.insert("MOLD_JOBS".to_string(), mold_threads.to_string());
         }
@@ -436,7 +501,10 @@ impl BuildEngine {
                 println!("  {} RUSTFLAGS={}", "$".dimmed(), rustflags.dimmed());
             }
             // Show profile env vars
-            for (key, value) in env_vars.iter().filter(|(k, _)| k.starts_with("CARGO_PROFILE")) {
+            for (key, value) in env_vars
+                .iter()
+                .filter(|(k, _)| k.starts_with("CARGO_PROFILE"))
+            {
                 println!("  {} {}={}", "$".dimmed(), key.dimmed(), value.dimmed());
             }
             if let Some(mold_jobs) = env_vars.get("MOLD_JOBS") {
@@ -444,7 +512,8 @@ impl BuildEngine {
             }
         }
 
-        let status = cmd.status()
+        let status = cmd
+            .status()
             .map_err(|e| format!("Failed to execute cargo: {}", e))?;
 
         Ok(status.success())
@@ -453,12 +522,14 @@ impl BuildEngine {
     fn print_banner(&self, request: &BuildRequest) {
         let version = env!("CARGO_PKG_VERSION");
         println!();
-        println!("{} {} {}",
+        println!(
+            "{} {} {}",
             "rustm".bold().bright_cyan(),
             format!("v{}", version).dimmed(),
             "- Blazing-fast Rust builder".dimmed()
         );
-        println!("{} {}",
+        println!(
+            "{} {}",
             "Command:".dimmed(),
             request.build_type.to_string().yellow().bold()
         );
@@ -476,11 +547,15 @@ impl BuildEngine {
         println!("{} Optimization Stack", "⚡".to_string());
         println!("{}", "─".repeat(50));
         println!("  {} Profile: {}", "→".green(), profile_name.cyan());
-        println!("  {} Linker:  {} ({})", "→".green(),
+        println!(
+            "  {} Linker:  {} ({})",
+            "→".green(),
             linker_info.name.cyan(),
             linker_info.speed_tier.to_string().green()
         );
-        println!("  {} Backend: {}", "→".green(),
+        println!(
+            "  {} Backend: {}",
+            "→".green(),
             match backend {
                 CodegenBackend::Cranelift => "Cranelift ⚡".bright_yellow(),
                 CodegenBackend::Llvm => "LLVM".cyan(),
@@ -488,8 +563,14 @@ impl BuildEngine {
             }
         );
         println!("  {} Jobs:    {}", "→".green(), jobs);
-        println!("  {} Cache:   {} (hits: {}, misses: {})", "→".green(),
-            if cache_status.sccache_active { "active".green() } else { "inactive".yellow() },
+        println!(
+            "  {} Cache:   {} (hits: {}, misses: {})",
+            "→".green(),
+            if cache_status.sccache_active {
+                "active".green()
+            } else {
+                "inactive".yellow()
+            },
             cache_status.hits.to_string().green(),
             cache_status.misses.to_string().yellow()
         );
@@ -497,13 +578,29 @@ impl BuildEngine {
         if linker_info.name == "mold" {
             println!("  {} mold optimizations:", "→".green());
             println!("     ICF:       {}", linker_info.mold_flags.icf);
-            println!("     Relaxation: {}", if linker_info.mold_flags.relax { "ON".green() } else { "OFF".yellow() });
-            println!("     Threads:   {}", linker_info.mold_flags.threads
-                .map(|n| n.to_string()).unwrap_or_else(|| "auto".to_string()));
+            println!(
+                "     Relaxation: {}",
+                if linker_info.mold_flags.relax {
+                    "ON".green()
+                } else {
+                    "OFF".yellow()
+                }
+            );
+            println!(
+                "     Threads:   {}",
+                linker_info
+                    .mold_flags
+                    .threads
+                    .map(|n| n.to_string())
+                    .unwrap_or_else(|| "auto".to_string())
+            );
         }
 
         if *backend == CodegenBackend::Cranelift {
-            println!("  {} Cranelift: Fast codegen (2-5x faster than LLVM)", "→".bright_yellow());
+            println!(
+                "  {} Cranelift: Fast codegen (2-5x faster than LLVM)",
+                "→".bright_yellow()
+            );
             println!("     Note: Binary performance ~80-95% of LLVM");
         }
 
@@ -520,7 +617,8 @@ pub fn print_build_summary(result: &BuildResult) {
         } else {
             format!("{}ms", result.duration_ms)
         };
-        println!("{} Build completed in {}",
+        println!(
+            "{} Build completed in {}",
             "✅",
             duration_str.green().bold()
         );
@@ -530,15 +628,13 @@ pub fn print_build_summary(result: &BuildResult) {
         } else {
             format!("{}ms", result.duration_ms)
         };
-        println!("{} Build failed after {}",
-            "❌",
-            duration_str.red().bold()
-        );
+        println!("{} Build failed after {}", "❌", duration_str.red().bold());
     }
 
     // Show linker optimization applied
     if !result.mold_flags_applied.is_empty() && result.linker_used != "default" {
-        println!("   Linker: {} ({}) — {} optimizations applied",
+        println!(
+            "   Linker: {} ({}) — {} optimizations applied",
             result.linker_used.green(),
             result.linker_speed_tier.green(),
             result.mold_flags_applied.len()
@@ -553,11 +649,10 @@ pub fn print_build_summary(result: &BuildResult) {
     }
 
     if result.cache_hits > 0 {
-        println!("   Cache hits: {} | Misses: {}",
+        println!(
+            "   Cache hits: {} | Misses: {}",
             result.cache_hits.to_string().green(),
             result.cache_misses.to_string().yellow()
         );
     }
 }
-
-

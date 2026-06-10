@@ -289,15 +289,31 @@ pub struct ProfilePreset {
     pub rustflags: Vec<String>,
 }
 
-fn default_profile() -> String { "fastest".to_string() }
-fn default_true() -> bool { true }
-fn default_lto() -> String {"thin".to_string() }
+fn default_profile() -> String {
+    "fastest".to_string()
+}
+fn default_true() -> bool {
+    true
+}
+fn default_lto() -> String {
+    "thin".to_string()
+}
 
-fn default_codegen_backend() -> String {"auto".to_string()}
-fn default_cache_size() -> u32 { 10 }
-fn default_linker() -> String { "auto".to_string() }
-fn default_icf() -> String { "safe".to_string() }
-fn default_build_id() -> String { "fast".to_string() }
+fn default_codegen_backend() -> String {
+    "auto".to_string()
+}
+fn default_cache_size() -> u32 {
+    10
+}
+fn default_linker() -> String {
+    "auto".to_string()
+}
+fn default_icf() -> String {
+    "safe".to_string()
+}
+fn default_build_id() -> String {
+    "fast".to_string()
+}
 
 impl RustmConfig {
     /// Load config from the project directory
@@ -338,15 +354,14 @@ impl RustmConfig {
         let config_path = project_dir.join("rustm.toml");
         let content = toml::to_string_pretty(self)
             .map_err(|e| format!("Failed to serialize config: {}", e))?;
-        fs::write(&config_path, content)
-            .map_err(|e| format!("Failed to write rustm.toml: {}", e))
+        fs::write(&config_path, content).map_err(|e| format!("Failed to write rustm.toml: {}", e))
     }
 
     /// Generate default config file with mold optimization documentation
     pub fn generate_default() -> String {
         let config = Self::default();
         let mut doc = String::new();
-        
+
         doc.push_str("# rustm configuration\n");
         doc.push_str("# https://github.com/rui314/mold — fastest linker\n");
         doc.push_str("#\n");
@@ -360,7 +375,10 @@ impl RustmConfig {
 
         doc.push_str("# Build optimization settings\n");
         doc.push_str("[build]\n");
-        doc.push_str(&format!("default_profile = \"{}\"\n", config.build.default_profile));
+        doc.push_str(&format!(
+            "default_profile = \"{}\"\n",
+            config.build.default_profile
+        ));
         doc.push_str(&format!("incremental = {}\n", config.build.incremental));
         doc.push_str(&format!("strip = {}\n", config.build.strip));
         doc.push_str(&format!("lto = \"{}\"\n", config.build.lto));
@@ -383,7 +401,10 @@ impl RustmConfig {
         doc.push_str("#   4. Built-in TLGP relaxation\n\n");
         doc.push_str("[linker]\n");
         doc.push_str(&format!("preferred = \"{}\"\n", config.linker.preferred));
-        doc.push_str(&format!("# release_mode = {}\n", config.linker.release_mode));
+        doc.push_str(&format!(
+            "# release_mode = {}\n",
+            config.linker.release_mode
+        ));
         doc.push_str(&format!("icf = \"{}\"\n", config.linker.icf));
         doc.push_str(&format!("relax = {}\n", config.linker.relax));
         doc.push_str(&format!("threads = {}\n", config.linker.threads));
@@ -403,7 +424,9 @@ impl RustmConfig {
         doc.push_str("# dev-fast:     Fastest dev iteration (codegen-units=256, no LTO)\n");
         doc.push_str("# balanced:     Good tradeoff (thin LTO, opt-level=2)\n");
         doc.push_str("# dev-check:   Fastest cargo check (no debug info)\n");
-        doc.push_str("# release-max:  Maximum performance (fat LTO, codegen-units=1, mold ICF=all)\n");
+        doc.push_str(
+            "# release-max:  Maximum performance (fat LTO, codegen-units=1, mold ICF=all)\n",
+        );
         doc.push_str("# size-opt:     Minimal binary (opt-level=z, ICF=all)\n\n");
 
         doc.push_str("[profiles.dev-fast]\n");
@@ -452,8 +475,3 @@ impl RustmConfig {
         }
     }
 }
-
-
-
-
-

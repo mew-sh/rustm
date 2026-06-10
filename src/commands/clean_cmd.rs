@@ -1,12 +1,12 @@
 //! Clean command implementation
 
 use crate::commands::cli;
-use crate::core::config::RustmConfig;
 use crate::core::cache::CacheManager;
+use crate::core::config::RustmConfig;
 
 pub fn execute(args: cli::CleanArgs) -> Result<(), String> {
-    let project_dir = RustmConfig::find_project_root()
-        .ok_or("Not in a Rust project directory.".to_string())?;
+    let project_dir =
+        RustmConfig::find_project_root().ok_or("Not in a Rust project directory.".to_string())?;
 
     let config = RustmConfig::load(&project_dir);
 

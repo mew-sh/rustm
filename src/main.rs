@@ -3,8 +3,8 @@
 //! A smart Cargo wrapper that automatically applies performance optimizations
 //! to make your Rust builds significantly faster.
 
-mod core;
 mod commands;
+mod core;
 mod utils;
 
 use clap::Parser;

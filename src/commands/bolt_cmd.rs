@@ -50,7 +50,10 @@ pub fn execute(args: cli::BoltArgs) -> Result<(), String> {
                 return Err(format!("Binary not found: {}", binary));
             }
 
-            println!("{} Applying BOLT optimization (no profile)...", "🔨".to_string());
+            println!(
+                "{} Applying BOLT optimization (no profile)...",
+                "🔨".to_string()
+            );
             println!("  Binary: {}", binary);
             println!("  Output: {}", output);
             println!();
