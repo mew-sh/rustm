@@ -18,14 +18,8 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
 
     if args.generate {
         // Step 1: Build instrumented binary
-        println!(
-            "\n{} PGO Step 1: Building instrumented binary...",
-            "🎯".to_string()
-        );
-        println!(
-            "{} This binary will collect profile data during execution.\n",
-            "→".to_string()
-        );
+        println!("\n🎯 PGO Step 1: Building instrumented binary...");
+        println!("→ This binary will collect profile data during execution.\n");
 
         let mut config = RustmConfig::load(&project_dir);
         let pgo_path = args
@@ -74,11 +68,8 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
         let result = engine.build(&request)?;
 
         if result.success {
-            println!(
-                "\n{} Instrumented binary built successfully!",
-                "✅".to_string()
-            );
-            println!("\n{} Next steps:", "→".to_string());
+            println!("\n✅ Instrumented binary built successfully!");
+            println!("\n→ Next steps:");
             println!("  1. Run your binary with representative workload:");
             println!("     ./target/release/your-binary <args>");
             println!("     Profile data will be written to: {}", pgo_path);
@@ -106,7 +97,7 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
 
     if args.merge {
         // Step 3: Merge profile data
-        println!("\n{} PGO Step 3: Merging profile data...", "🎯".to_string());
+        println!("\n🎯 PGO Step 3: Merging profile data...");
 
         let optimizer = LlvmOptimizer::new(&Default::default());
         let profile_dir = std::path::PathBuf::from(
@@ -118,9 +109,9 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
 
         match optimizer.merge_pgo_profiles(&profile_dir, &output_path) {
             Ok(()) => {
-                println!("{} Profile data merged successfully!", "✅".to_string());
+                println!("✅ Profile data merged successfully!");
                 println!("  Output: {}", output_path.display());
-                println!("\n{} Next: Rebuild with profile data:", "→".to_string());
+                println!("\n→ Next: Rebuild with profile data:");
                 println!("  rustm pgo use --profile release-max");
             }
             Err(e) => {
@@ -133,14 +124,8 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
 
     if args.use_profile {
         // Step 4: Rebuild with profile data
-        println!(
-            "\n{} PGO Step 4: Rebuilding with profile data...",
-            "🎯".to_string()
-        );
-        println!(
-            "{} Using PGO data to optimize hot code paths.\n",
-            "→".to_string()
-        );
+        println!("\n🎯 PGO Step 4: Rebuilding with profile data...");
+        println!("→ Using PGO data to optimize hot code paths.\n");
 
         let mut config = RustmConfig::load(&project_dir);
         let pgo_path = args
@@ -208,17 +193,11 @@ pub fn execute(args: cli::PgoArgs) -> Result<(), String> {
     }
 
     if args.run {
-        println!(
-            "\n{} PGO Step 2: Run your binary with representative workload",
-            "🎯".to_string()
-        );
-        println!("\n{} Run:", "→".to_string());
+        println!("\n🎯 PGO Step 2: Run your binary with representative workload");
+        println!("\n→ Run:");
         println!("  ./target/release/your-binary <your-benchmark-args>");
-        println!(
-            "\n{} Profile data will be written to: ./target/pgo-profiles/",
-            "→".to_string()
-        );
-        println!("{} After running, merge profiles:", "→".to_string());
+        println!("\n→ Profile data will be written to: ./target/pgo-profiles/");
+        println!("→ After running, merge profiles:");
         println!("  rustm pgo merge");
 
         return Ok(());

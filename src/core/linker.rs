@@ -52,6 +52,7 @@ pub struct LinkerInfo {
     /// Human-readable name: "mold", "lld", "default"
     pub name: String,
     /// Absolute path to the linker binary
+    #[allow(dead_code)]
     pub path: Option<PathBuf>,
     /// Version string (e.g., "mold 2.33.0")
     pub version: Option<String>,
@@ -121,6 +122,7 @@ pub enum IcfLevel {
     None,
     /// Safe ICF — only folds functions that are definitely identical
     /// Uses a 2-pass approach: first compute hash, then verify bit-by-bit
+    #[allow(dead_code)]
     Safe,
     /// Full ICF — folds all identical code including data sections
     /// mold's ICF is parallelized across all CPU cores
@@ -141,13 +143,16 @@ impl std::fmt::Display for IcfLevel {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum BuildIdStyle {
     /// No build-id
+    #[allow(dead_code)]
     None,
     /// Fast: 0x01 prefix + random bytes (mold default, nearly zero cost)
     #[default]
     Fast,
     /// SHA-1 hash (slower but deterministic)
+    #[allow(dead_code)]
     Sha1,
     /// UUID-based
+    #[allow(dead_code)]
     Uuid,
 }
 
@@ -456,7 +461,7 @@ impl LinkerSelector {
 
     /// Use the system default linker
     fn default_linker_ok(&self) -> Result<LinkerInfo, String> {
-        let name = if cfg!(target_os = "windows") {
+        let _name = if cfg!(target_os = "windows") {
             "link.exe"
         } else if cfg!(target_os = "macos") {
             "ld64"
@@ -501,10 +506,10 @@ impl LinkerSelector {
         });
 
         // Try mold (Linux/macOS only)
-        if !cfg!(target_os = "windows") {
-            if let Ok(info) = Self::try_mold_static() {
-                available.push(info);
-            }
+        if !cfg!(target_os = "windows")
+            && let Ok(info) = Self::try_mold_static()
+        {
+            available.push(info);
         }
 
         // Try lld (all platforms)
@@ -673,6 +678,7 @@ impl LinkerInfo {
     }
 
     /// Format detailed info string
+    #[allow(dead_code)]
     pub fn detailed_info(&self) -> String {
         let mut info = format!(
             "{} ({})",
@@ -706,7 +712,6 @@ impl LinkerInfo {
                 } else {
                     "disabled".yellow()
                 }
-                .to_string()
             ));
             info.push_str(&format!(
                 "\n    Threads: {}",
@@ -723,7 +728,6 @@ impl LinkerInfo {
                 } else {
                     "no".yellow()
                 }
-                .to_string()
             ));
         }
         info

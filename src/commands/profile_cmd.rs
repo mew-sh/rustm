@@ -16,16 +16,12 @@ pub fn execute(args: cli::ProfileArgs) -> Result<(), String> {
     if let Some(ref profile_name) = args.show {
         match resolver.describe(profile_name) {
             Some(desc) => {
-                println!(
-                    "{} Profile: {}\n",
-                    "📋".to_string(),
-                    profile_name.cyan().bold()
-                );
+                println!("📋 Profile: {}\n", profile_name.cyan().bold());
                 println!("{}", desc);
 
                 // Show mold optimization tips for release profiles
                 if profile_name.contains("release") || profile_name.contains("size") {
-                    println!("\n{} mold optimization recommendations:", "⚡".to_string());
+                    println!("\n⚡ mold optimization recommendations:");
                     println!(
                         "  {} ICF=all — merges identical functions, reduces size 5-15%",
                         "→".green()
@@ -53,8 +49,8 @@ pub fn execute(args: cli::ProfileArgs) -> Result<(), String> {
 
     if args.compare.is_some() {
         let descriptions = resolver.describe_all();
-        println!("{} Comparing all profiles\n", "📊".to_string());
-        println!("{} mold optimizations per profile:", "⚡".to_string());
+        println!("📊 Comparing all profiles\n");
+        println!("⚡ mold optimizations per profile:");
         println!("  dev-fast:     ICF=none (fastest compile, no folding overhead)");
         println!("  dev-check:    ICF=none (minimal overhead for type checking)");
         println!("  balanced:     ICF=safe (safe folding, slight overhead)");
@@ -70,11 +66,8 @@ pub fn execute(args: cli::ProfileArgs) -> Result<(), String> {
     // List all profiles (default action)
     let descriptions = resolver.describe_all();
 
-    println!("{} Available Build Profiles\n", "⚡".to_string());
-    println!(
-        "{} mold's optimizations are applied per-profile:",
-        "⚡".to_string()
-    );
+    println!("⚡ Available Build Profiles\n");
+    println!("⚡ mold's optimizations are applied per-profile:");
     println!("  dev profiles:  ICF=none (fastest compile)");
     println!("  release profiles: ICF=safe/all + relaxation (smallest/fastest binary)\n");
 
@@ -83,13 +76,11 @@ pub fn execute(args: cli::ProfileArgs) -> Result<(), String> {
     }
 
     println!(
-        "\n{} Use: {} to see details of a specific profile",
-        "💡".to_string(),
+        "\n💡 Use: {} to see details of a specific profile",
         "rustm profile --show <name>".cyan()
     );
     println!(
-        "{} Use: {} to see mold optimization comparison",
-        "💡".to_string(),
+        "💡 Use: {} to see mold optimization comparison",
         "rustm profile --compare".cyan()
     );
 

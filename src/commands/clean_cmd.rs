@@ -10,7 +10,7 @@ pub fn execute(args: cli::CleanArgs) -> Result<(), String> {
 
     let config = RustmConfig::load(&project_dir);
 
-    println!("{} Cleaning build artifacts...", "🧹".to_string());
+    println!("🧹 Cleaning build artifacts...");
 
     // Run cargo clean
     let mut cargo_args = vec!["clean".to_string()];
@@ -32,14 +32,14 @@ pub fn execute(args: cli::CleanArgs) -> Result<(), String> {
         return Err("cargo clean failed".to_string());
     }
 
-    println!("  {} Cargo artifacts cleaned", "✅".to_string());
+    println!("  ✅ Cargo artifacts cleaned");
 
     // Clean sccache if requested
     if args.sccache || args.cache {
         let cache_manager = CacheManager::new(&config.cache);
         match cache_manager.clear() {
-            Ok(()) => println!("  {} Cache cleared", "✅".to_string()),
-            Err(e) => println!("  {} Cache clear failed: {}", "⚠️".to_string(), e),
+            Ok(()) => println!("  ✅ Cache cleared"),
+            Err(e) => println!("  ⚠️ Cache clear failed: {}", e),
         }
     }
 
@@ -49,10 +49,10 @@ pub fn execute(args: cli::CleanArgs) -> Result<(), String> {
         if target_dir.exists() {
             std::fs::remove_dir_all(&target_dir)
                 .map_err(|e| format!("Failed to remove target dir: {}", e))?;
-            println!("  {} Full target directory removed", "✅".to_string());
+            println!("  ✅ Full target directory removed");
         }
     }
 
-    println!("{} Clean complete!", "✨".to_string());
+    println!("✨ Clean complete!");
     Ok(())
 }

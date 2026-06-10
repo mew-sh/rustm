@@ -285,12 +285,12 @@ impl CraneliftBackend {
             .output()
             .ok();
 
-        if let Some(output) = output {
-            if output.status.success() {
-                let stdout = String::from_utf8(output.stdout).ok()?;
-                if !stdout.trim().is_empty() {
-                    return Some(stdout.trim().to_string());
-                }
+        if let Some(output) = output
+            && output.status.success()
+        {
+            let stdout = String::from_utf8(output.stdout).ok()?;
+            if !stdout.trim().is_empty() {
+                return Some(stdout.trim().to_string());
             }
         }
 
@@ -304,10 +304,10 @@ impl CraneliftBackend {
         for line in stdout.lines() {
             if line.contains("rustc_codegen_cranelift") {
                 // Extract version if present
-                if let Some(parens) = line.split('(').nth(1) {
-                    if let Some(ver) = parens.split(')').next() {
-                        return Some(format!("cranelift-{}", ver.trim()));
-                    }
+                if let Some(parens) = line.split('(').nth(1)
+                    && let Some(ver) = parens.split(')').next()
+                {
+                    return Some(format!("cranelift-{}", ver.trim()));
                 }
                 return Some("cranelift (installed)".to_string());
             }
@@ -390,6 +390,7 @@ impl CraneliftBackend {
     }
 
     /// Print Cranelift architecture info
+    #[allow(dead_code)]
     pub fn print_architecture_info(&self) -> String {
         let mut info = String::new();
 

@@ -3,6 +3,8 @@
 //! Beyond mold's basic optimizations, these algorithms provide
 //! additional performance and binary size improvements.
 
+#![allow(dead_code)]
+
 use std::fmt;
 
 /// Call Graph Clustering Algorithm

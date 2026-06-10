@@ -50,14 +50,13 @@ impl ParallelOptimizer {
             let cpu_count = self.cpu_count() as u64;
             if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
                 for line in meminfo.lines() {
-                    if line.starts_with("MemAvailable:") {
-                        if let Some(kb_str) = line.split_whitespace().nth(1) {
-                            if let Ok(kb) = kb_str.parse::<u64>() {
-                                let gb = kb / 1_048_576; // Convert KB to GB
-                                let max_by_memory = gb / 2;
-                                return (max_by_memory as f64 / cpu_count as f64).min(1.0);
-                            }
-                        }
+                    if line.starts_with("MemAvailable:")
+                        && let Some(kb_str) = line.split_whitespace().nth(1)
+                        && let Ok(kb) = kb_str.parse::<u64>()
+                    {
+                        let gb = kb / 1_048_576; // Convert KB to GB
+                        let max_by_memory = gb / 2;
+                        return (max_by_memory as f64 / cpu_count as f64).min(1.0);
                     }
                 }
             }

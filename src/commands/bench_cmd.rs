@@ -57,10 +57,7 @@ pub fn execute(args: cli::BenchArgs) -> Result<(), String> {
         ];
 
         println!("\nProfile Build Time Comparison\n");
-        println!(
-            "{:<15} {:<15} {}",
-            "Profile", "Duration", "Speedup vs dev-fast"
-        );
+        println!("{:<15} {:<15} Speedup vs dev-fast", "Profile", "Duration");
         println!("{}", "─".repeat(55));
 
         let mut baseline: Option<u128> = None;
@@ -107,7 +104,7 @@ pub fn execute(args: cli::BenchArgs) -> Result<(), String> {
                     );
                 }
                 Err(_) => {
-                    println!("{:<15} {:<15} {}", profile_name, "failed", "—");
+                    println!("{:<15} {:<15} —", profile_name, "failed");
                 }
             }
         }

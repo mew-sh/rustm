@@ -237,14 +237,14 @@ impl BuildEngine {
     fn build_cargo_args(
         &self,
         request: &BuildRequest,
-        profile: &ProfilePreset,
-        linker_info: &LinkerInfo,
+        _profile: &ProfilePreset,
+        _linker_info: &LinkerInfo,
         jobs: u32,
     ) -> Result<Vec<String>, String> {
         let mut args = vec![request.build_type.to_string()];
 
         // Determine cargo profile
-        let cargo_profile = if request.release {
+        let _cargo_profile = if request.release {
             "release"
         } else {
             match request.build_type {
@@ -394,13 +394,13 @@ impl BuildEngine {
         // ═══════════════════════════════════════════════════════════
 
         // LTO
-        if let Some(ref lto) = profile.lto {
-            if lto != "none" {
-                env.insert(
-                    format!("CARGO_PROFILE_{}_LTO", profile_env.to_uppercase()),
-                    lto.clone(),
-                );
-            }
+        if let Some(ref lto) = profile.lto
+            && lto != "none"
+        {
+            env.insert(
+                format!("CARGO_PROFILE_{}_LTO", profile_env.to_uppercase()),
+                lto.clone(),
+            );
         }
 
         // Codegen units
@@ -412,13 +412,13 @@ impl BuildEngine {
         }
 
         // Opt level
-        if let Some(ref opt) = profile.opt_level {
-            if opt != "0" {
-                env.insert(
-                    format!("CARGO_PROFILE_{}_OPT_LEVEL", profile_env.to_uppercase()),
-                    opt.clone(),
-                );
-            }
+        if let Some(ref opt) = profile.opt_level
+            && opt != "0"
+        {
+            env.insert(
+                format!("CARGO_PROFILE_{}_OPT_LEVEL", profile_env.to_uppercase()),
+                opt.clone(),
+            );
         }
 
         // Strip
@@ -454,13 +454,13 @@ impl BuildEngine {
         }
 
         // sccache — distributed compilation cache
-        if self.cache_manager.is_sccache_active() {
-            if let Ok(sccache_path) = which::which("sccache") {
-                env.insert(
-                    "RUSTC_WRAPPER".to_string(),
-                    sccache_path.to_string_lossy().to_string(),
-                );
-            }
+        if self.cache_manager.is_sccache_active()
+            && let Ok(sccache_path) = which::which("sccache")
+        {
+            env.insert(
+                "RUSTC_WRAPPER".to_string(),
+                sccache_path.to_string_lossy().to_string(),
+            );
         }
 
         // mold uses parallel threads internally
@@ -544,7 +544,7 @@ impl BuildEngine {
         backend: &CodegenBackend,
     ) {
         println!();
-        println!("{} Optimization Stack", "⚡".to_string());
+        println!("⚡ Optimization Stack");
         println!("{}", "─".repeat(50));
         println!("  {} Profile: {}", "→".green(), profile_name.cyan());
         println!(
@@ -617,18 +617,14 @@ pub fn print_build_summary(result: &BuildResult) {
         } else {
             format!("{}ms", result.duration_ms)
         };
-        println!(
-            "{} Build completed in {}",
-            "✅",
-            duration_str.green().bold()
-        );
+        println!("✅ Build completed in {}", duration_str.green().bold());
     } else {
         let duration_str = if result.duration_ms >= 1000 {
             format!("{:.2}s", result.duration_ms as f64 / 1000.0)
         } else {
             format!("{}ms", result.duration_ms)
         };
-        println!("{} Build failed after {}", "❌", duration_str.red().bold());
+        println!("❌ Build failed after {}", duration_str.red().bold());
     }
 
     // Show linker optimization applied

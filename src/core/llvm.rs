@@ -12,6 +12,7 @@ use std::process::Command;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PgoStage {
     Generate,
+    #[allow(dead_code)]
     Run,
     Use,
 }
@@ -35,8 +36,10 @@ pub struct LlvmOptConfig {
     pub pgo_enabled: bool,
     pub pgo_stage: Option<PgoStage>,
     pub pgo_path: Option<String>,
+    #[allow(dead_code)]
     pub bolt_enabled: bool,
     pub bolt_path: Option<PathBuf>,
+    #[allow(dead_code)]
     pub autofdo_enabled: bool,
     pub optimization_remarks: bool,
     pub print_stats: bool,
@@ -64,47 +67,47 @@ impl Default for LlvmOptConfig {
 pub fn detect_cpu_features() -> Vec<String> {
     let mut features = Vec::new();
 
-    if let Ok(output) = Command::new("rustc").args(["--print", "cfg"]).output() {
-        if let Ok(stdout) = String::from_utf8(output.stdout) {
-            #[cfg(target_arch = "x86_64")]
-            {
-                if stdout.contains("target_feature=\"avx2\"") {
-                    features.push("+avx2".to_string());
-                    features.push("+fma".to_string());
-                }
-                if stdout.contains("target_feature=\"sse4.2\"") {
-                    features.push("+sse4.2".to_string());
-                }
-                if stdout.contains("target_feature=\"bmi1\"") {
-                    features.push("+bmi1".to_string());
-                }
-                if stdout.contains("target_feature=\"bmi2\"") {
-                    features.push("+bmi2".to_string());
-                }
-                if stdout.contains("target_feature=\"popcnt\"") {
-                    features.push("+popcnt".to_string());
-                }
-                if stdout.contains("target_feature=\"lzcnt\"") {
-                    features.push("+lzcnt".to_string());
-                }
-                if stdout.contains("target_feature=\"avx512f\"") {
-                    features.push("+avx512f".to_string());
-                    features.push("+avx512cd".to_string());
-                    features.push("+avx512bw".to_string());
-                    features.push("+avx512dq".to_string());
-                    features.push("+avx512vl".to_string());
-                }
+    if let Ok(output) = Command::new("rustc").args(["--print", "cfg"]).output()
+        && let Ok(stdout) = String::from_utf8(output.stdout)
+    {
+        #[cfg(target_arch = "x86_64")]
+        {
+            if stdout.contains("target_feature=\"avx2\"") {
+                features.push("+avx2".to_string());
+                features.push("+fma".to_string());
             }
+            if stdout.contains("target_feature=\"sse4.2\"") {
+                features.push("+sse4.2".to_string());
+            }
+            if stdout.contains("target_feature=\"bmi1\"") {
+                features.push("+bmi1".to_string());
+            }
+            if stdout.contains("target_feature=\"bmi2\"") {
+                features.push("+bmi2".to_string());
+            }
+            if stdout.contains("target_feature=\"popcnt\"") {
+                features.push("+popcnt".to_string());
+            }
+            if stdout.contains("target_feature=\"lzcnt\"") {
+                features.push("+lzcnt".to_string());
+            }
+            if stdout.contains("target_feature=\"avx512f\"") {
+                features.push("+avx512f".to_string());
+                features.push("+avx512cd".to_string());
+                features.push("+avx512bw".to_string());
+                features.push("+avx512dq".to_string());
+                features.push("+avx512vl".to_string());
+            }
+        }
 
-            #[cfg(target_arch = "aarch64")]
-            {
-                features.push("+neon".to_string());
-                if stdout.contains("target_feature=\"sve\"") {
-                    features.push("+sve".to_string());
-                }
-                if stdout.contains("target_feature=\"sve2\"") {
-                    features.push("+sve2".to_string());
-                }
+        #[cfg(target_arch = "aarch64")]
+        {
+            features.push("+neon".to_string());
+            if stdout.contains("target_feature=\"sve\"") {
+                features.push("+sve".to_string());
+            }
+            if stdout.contains("target_feature=\"sve2\"") {
+                features.push("+sve2".to_string());
             }
         }
     }
@@ -137,10 +140,10 @@ impl LlvmOptimizer {
 
         // 2. Target Features — fine-grained SIMD/feature control
         let mut all_features = self.config.target_features.clone();
-        if profile.opt_level.as_deref() == Some("3") || profile.opt_level.as_deref() == Some("2") {
-            if all_features.is_empty() {
-                all_features = detect_cpu_features();
-            }
+        if (profile.opt_level.as_deref() == Some("3") || profile.opt_level.as_deref() == Some("2"))
+            && all_features.is_empty()
+        {
+            all_features = detect_cpu_features();
         }
         if !all_features.is_empty() {
             flags.push(format!("-C target-feature={}", all_features.join(",")));
@@ -197,6 +200,7 @@ impl LlvmOptimizer {
     }
 
     /// Generate environment variables for LLVM optimizations
+    #[allow(dead_code)]
     pub fn build_env_vars(&self) -> HashMap<String, String> {
         let mut env = HashMap::new();
 
@@ -204,18 +208,18 @@ impl LlvmOptimizer {
             env.insert("RUSTC_BOOTSTRAP".to_string(), "1".to_string());
         }
 
-        if self.config.pgo_enabled {
-            if let Some(PgoStage::Generate) = self.config.pgo_stage {
-                let path = self
-                    .config
-                    .pgo_path
-                    .as_deref()
-                    .unwrap_or("./target/pgo-profiles");
-                env.insert(
-                    "LLVM_PROFILE_FILE".to_string(),
-                    format!("{}/default_%p_%m.profraw", path),
-                );
-            }
+        if self.config.pgo_enabled
+            && let Some(PgoStage::Generate) = self.config.pgo_stage
+        {
+            let path = self
+                .config
+                .pgo_path
+                .as_deref()
+                .unwrap_or("./target/pgo-profiles");
+            env.insert(
+                "LLVM_PROFILE_FILE".to_string(),
+                format!("{}/default_%p_%m.profraw", path),
+            );
         }
 
         env

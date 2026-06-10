@@ -11,10 +11,7 @@ pub fn execute(args: cli::InitArgs) -> Result<(), String> {
     let config_path = project_dir.join("rustm.toml");
 
     if config_path.exists() && !args.force {
-        println!(
-            "{} rustm.toml already exists. Use --force to overwrite.",
-            "⚠️".to_string()
-        );
+        println!("⚠️ rustm.toml already exists. Use --force to overwrite.");
         return Ok(());
     }
 
@@ -29,13 +26,13 @@ pub fn execute(args: cli::InitArgs) -> Result<(), String> {
         .map_err(|e| format!("Failed to write rustm.toml: {}", e))?;
 
     println!();
-    println!("{} rustm initialized!", "✨".to_string());
+    println!("✨ rustm initialized!");
     println!(
         "  Config written to: {}",
         config_path.display().to_string().cyan()
     );
     println!();
-    println!("  {} Available profiles:", "⚡".to_string());
+    println!("  ⚡ Available profiles:");
     println!("    {} — Fast dev iteration", "dev-fast".cyan());
     println!("    {} — Fastest cargo check", "dev-check".cyan());
     println!("    {} — Fast release with thin LTO", "release-fast".cyan());
@@ -47,8 +44,7 @@ pub fn execute(args: cli::InitArgs) -> Result<(), String> {
     println!("    {} — Good compile/runtime tradeoff", "balanced".cyan());
     println!();
     println!(
-        "  {} Run {} to build with optimizations!",
-        "💡".to_string(),
+        "  💡 Run {} to build with optimizations!",
         "rustm build".green().bold()
     );
 

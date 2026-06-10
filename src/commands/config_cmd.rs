@@ -13,10 +13,7 @@ pub fn execute(args: cli::ConfigArgs) -> Result<(), String> {
 
         let config_path = project_dir.join("rustm.toml");
         if config_path.exists() && !args.edit {
-            println!(
-                "{} rustm.toml already exists. Use --edit to overwrite.",
-                "⚠️".to_string()
-            );
+            println!("⚠️ rustm.toml already exists. Use --edit to overwrite.");
             return Ok(());
         }
 
@@ -25,8 +22,7 @@ pub fn execute(args: cli::ConfigArgs) -> Result<(), String> {
             .map_err(|e| format!("Failed to write rustm.toml: {}", e))?;
 
         println!(
-            "{} Generated default config at {}",
-            "✅".to_string(),
+            "✅ Generated default config at {}",
             config_path.display().to_string().cyan()
         );
         return Ok(());
@@ -75,12 +71,7 @@ pub fn execute(args: cli::ConfigArgs) -> Result<(), String> {
         }
 
         config.save(&project_dir)?;
-        println!(
-            "{} Set {} = {}",
-            "✅".to_string(),
-            key.cyan(),
-            value.green()
-        );
+        println!("✅ Set {} = {}", key.cyan(), value.green());
         return Ok(());
     }
 
@@ -93,7 +84,7 @@ pub fn execute(args: cli::ConfigArgs) -> Result<(), String> {
     let content = toml::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
 
-    println!("{} Current configuration (rustm.toml):\n", "📋".to_string());
+    println!("📋 Current configuration (rustm.toml):\n");
     println!("{}", content);
     Ok(())
 }

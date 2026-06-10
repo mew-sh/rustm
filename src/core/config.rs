@@ -9,7 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Main rustm configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RustmConfig {
     /// Build settings
     #[serde(default)]
@@ -34,19 +34,6 @@ pub struct RustmConfig {
     /// Environment variables to set during builds
     #[serde(default)]
     pub env: HashMap<String, String>,
-}
-
-impl Default for RustmConfig {
-    fn default() -> Self {
-        Self {
-            build: BuildConfig::default(),
-            cache: CacheConfig::default(),
-            linker: LinkerConfig::default(),
-            parallel: ParallelConfig::default(),
-            profiles: HashMap::new(),
-            env: HashMap::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -337,12 +324,11 @@ impl RustmConfig {
         // Also check global config
         if let Some(home) = dirs::home_dir() {
             let global_path = home.join(".rustm").join("config.toml");
-            if global_path.exists() {
-                if let Ok(content) = fs::read_to_string(&global_path) {
-                    if let Ok(config) = toml::from_str(&content) {
-                        return config;
-                    }
-                }
+            if global_path.exists()
+                && let Ok(content) = fs::read_to_string(&global_path)
+                && let Ok(config) = toml::from_str(&content)
+            {
+                return config;
             }
         }
 
