@@ -29,13 +29,11 @@ pub struct CacheManager {
 impl CacheManager {
     pub fn new(config: &CacheConfig) -> Self {
         let sccache_path = which::which("sccache").ok();
-        let cache_dir = config.dir.as_ref()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                dirs::home_dir()
-                    .map(|h| h.join(".rustm").join("cache"))
-                    .unwrap_or_else(|| PathBuf::from(".rustm-cache"))
-            });
+        let cache_dir = config.dir.as_ref().map(PathBuf::from).unwrap_or_else(|| {
+            dirs::home_dir()
+                .map(|h| h.join(".rustm").join("cache"))
+                .unwrap_or_else(|| PathBuf::from(".rustm-cache"))
+        });
 
         Self {
             config: config.clone(),
@@ -56,12 +54,10 @@ impl CacheManager {
         }
 
         let sccache_active = self.is_sccache_active();
-        if sccache_active {
-            if let Some(ref path) = self.sccache_path {
-                let _ = std::process::Command::new(path)
-                    .arg("--start-server")
-                    .output();
-            }
+        if sccache_active && let Some(ref path) = self.sccache_path {
+            let _ = std::process::Command::new(path)
+                .arg("--start-server")
+                .output();
         }
 
         let (hits, misses) = self.get_sccache_stats();
@@ -77,22 +73,19 @@ impl CacheManager {
 
     /// Get sccache statistics
     fn get_sccache_stats(&self) -> (u64, u64) {
-        if let Some(ref path) = self.sccache_path {
-            if let Ok(output) = std::process::Command::new(path)
+        if let Some(ref path) = self.sccache_path
+            && let Ok(output) = std::process::Command::new(path)
                 .arg("--show-stats")
                 .arg("--stats-format=json")
                 .output()
-            {
-                if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-                    let hits = json.get("cache_hits")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0);
-                    let misses = json.get("cache_misses")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0);
-                    return (hits, misses);
-                }
-            }
+            && let Ok(json) = serde_json::from_slice::<serde_json::Value>(&output.stdout)
+        {
+            let hits = json.get("cache_hits").and_then(|v| v.as_u64()).unwrap_or(0);
+            let misses = json
+                .get("cache_misses")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            return (hits, misses);
         }
         (0, 0)
     }

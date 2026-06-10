@@ -40,7 +40,9 @@ pub fn format_duration(ms: u128) -> String {
 /// Format a table row
 #[allow(dead_code)]
 pub fn table_row(columns: &[&str], widths: &[usize]) -> String {
-    columns.iter().zip(widths.iter())
+    columns
+        .iter()
+        .zip(widths.iter())
         .map(|(col, &width)| format!("{:<width$}", col, width = width))
         .collect::<Vec<_>>()
         .join(" | ")

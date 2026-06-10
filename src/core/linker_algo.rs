@@ -1,7 +1,9 @@
-﻿//! Advanced Linker Optimization Algorithms
+//! Advanced Linker Optimization Algorithms
 //!
 //! Beyond mold's basic optimizations, these algorithms provide
 //! additional performance and binary size improvements.
+
+#![allow(dead_code)]
 
 use std::fmt;
 
@@ -184,25 +186,22 @@ impl LinkerAlgorithmConfig {
 
         // Call graph clustering
         match self.call_graph_algorithm {
-            CallGraphAlgorithm::Hfsort => 
-                flags.push("-Wl,--reorder-functions=hfsort+".to_string()),
-            CallGraphAlgorithm::PettisHansen => 
-                flags.push("-Wl,--reorder-functions=pettis-hansen".to_string()),
-            CallGraphAlgorithm::C3CallChain => 
-                flags.push("-Wl,--reorder-functions=c3".to_string()),
-            CallGraphAlgorithm::CDSort => 
-                flags.push("-Wl,--reorder-functions=cd-sort".to_string()),
-            CallGraphAlgorithm::RandomShuffle => 
-                flags.push("-Wl,--shuffle-sections".to_string()),
+            CallGraphAlgorithm::Hfsort => flags.push("-Wl,--reorder-functions=hfsort+".to_string()),
+            CallGraphAlgorithm::PettisHansen => {
+                flags.push("-Wl,--reorder-functions=pettis-hansen".to_string())
+            }
+            CallGraphAlgorithm::C3CallChain => flags.push("-Wl,--reorder-functions=c3".to_string()),
+            CallGraphAlgorithm::CDSort => flags.push("-Wl,--reorder-functions=cd-sort".to_string()),
+            CallGraphAlgorithm::RandomShuffle => flags.push("-Wl,--shuffle-sections".to_string()),
         }
 
         // Section ordering
         match self.section_ordering {
-            SectionOrdering::Default | SectionOrdering::FunctionSort => {},
-            SectionOrdering::CacheLineAligned => 
-                flags.push("-Wl,-z,common-page-size=4096".to_string()),
-            SectionOrdering::PageAligned => 
-                flags.push("-Wl,-z,separate-code".to_string()),
+            SectionOrdering::Default | SectionOrdering::FunctionSort => {}
+            SectionOrdering::CacheLineAligned => {
+                flags.push("-Wl,-z,common-page-size=4096".to_string())
+            }
+            SectionOrdering::PageAligned => flags.push("-Wl,-z,separate-code".to_string()),
             SectionOrdering::TLBAware => {
                 flags.push("-Wl,-z,separate-code".to_string());
                 flags.push("-Wl,-z,common-page-size=2097152".to_string());
@@ -210,15 +209,17 @@ impl LinkerAlgorithmConfig {
         }
 
         // DCE
-        if matches!(self.dce, DCEAlgorithm::Conservative | DCEAlgorithm::Aggressive | DCEAlgorithm::CrossModule) {
+        if matches!(
+            self.dce,
+            DCEAlgorithm::Conservative | DCEAlgorithm::Aggressive | DCEAlgorithm::CrossModule
+        ) {
             flags.push("-Wl,--gc-sections".to_string());
         }
 
         // .eh_frame
         match self.eh_frame {
-            EhFrameOptimization::None | EhFrameOptimization::Dedup => {},
-            EhFrameOptimization::Compress =>
-                flags.push("-Wl,--eh-frame-hdr".to_string()),
+            EhFrameOptimization::None | EhFrameOptimization::Dedup => {}
+            EhFrameOptimization::Compress => flags.push("-Wl,--eh-frame-hdr".to_string()),
             EhFrameOptimization::Eliminate => {
                 // Handled by -C strip=symbols + -C panic=abort
             }
@@ -226,9 +227,8 @@ impl LinkerAlgorithmConfig {
 
         // GOT/PLT
         match self.got_plt {
-            GotPltOptimization::Standard => {},
-            GotPltOptimization::LocalGOT => 
-                flags.push("-Wl,--relax".to_string()),
+            GotPltOptimization::Standard => {}
+            GotPltOptimization::LocalGOT => flags.push("-Wl,--relax".to_string()),
             GotPltOptimization::Full => {
                 flags.push("-Wl,--relax".to_string());
                 flags.push("-Wl,-z,now".to_string());

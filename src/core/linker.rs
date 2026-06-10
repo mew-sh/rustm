@@ -42,9 +42,9 @@
 //! - Tracks which optimizations are active per build
 
 use crate::core::config::LinkerConfig;
+use colored::*;
 use std::path::PathBuf;
 use std::process::Command;
-use colored::*;
 
 /// Detailed information about the selected linker
 #[derive(Debug, Clone)]
@@ -52,6 +52,7 @@ pub struct LinkerInfo {
     /// Human-readable name: "mold", "lld", "default"
     pub name: String,
     /// Absolute path to the linker binary
+    #[allow(dead_code)]
     pub path: Option<PathBuf>,
     /// Version string (e.g., "mold 2.33.0")
     pub version: Option<String>,
@@ -121,6 +122,7 @@ pub enum IcfLevel {
     None,
     /// Safe ICF — only folds functions that are definitely identical
     /// Uses a 2-pass approach: first compute hash, then verify bit-by-bit
+    #[allow(dead_code)]
     Safe,
     /// Full ICF — folds all identical code including data sections
     /// mold's ICF is parallelized across all CPU cores
@@ -141,13 +143,16 @@ impl std::fmt::Display for IcfLevel {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum BuildIdStyle {
     /// No build-id
+    #[allow(dead_code)]
     None,
     /// Fast: 0x01 prefix + random bytes (mold default, nearly zero cost)
     #[default]
     Fast,
     /// SHA-1 hash (slower but deterministic)
+    #[allow(dead_code)]
     Sha1,
     /// UUID-based
+    #[allow(dead_code)]
     Uuid,
 }
 
@@ -205,7 +210,7 @@ impl MoldFlags {
         //   3. Comparing candidates bit-by-bit (parallel)
         //   4. Merging identical groups into single instances
         match self.icf {
-            IcfLevel::None => {},
+            IcfLevel::None => {}
             IcfLevel::Safe => flags.push("-Wl,--icf=safe".to_string()),
             IcfLevel::All => flags.push("-Wl,--icf=all".to_string()),
         }
@@ -273,7 +278,9 @@ pub struct LinkerSelector {
 
 impl LinkerSelector {
     pub fn new(config: &LinkerConfig) -> Self {
-        Self { config: config.clone() }
+        Self {
+            config: config.clone(),
+        }
     }
 
     /// Select the best linker based on configuration and availability
@@ -291,7 +298,8 @@ impl LinkerSelector {
             "default" => self.default_linker_ok(),
             "auto" => self.auto_select(),
             other => Err(format!(
-                "Unknown linker '{}'. Available: auto, mold, lld, default", other
+                "Unknown linker '{}'. Available: auto, mold, lld, default",
+                other
             )),
         }
     }
@@ -331,7 +339,8 @@ impl LinkerSelector {
         }
 
         // Search for mold binary
-        let mold_path = which::which("mold").ok()
+        let mold_path = which::which("mold")
+            .ok()
             .or_else(|| self.config.path.as_ref().map(PathBuf::from));
 
         let mold_path = mold_path.ok_or_else(|| {
@@ -374,11 +383,13 @@ impl LinkerSelector {
     fn try_lld(&self) -> Result<LinkerInfo, String> {
         if cfg!(target_os = "windows") {
             // On Windows (MSVC target), lld-link is the appropriate binary
-            let lld_path = which::which("lld-link").ok()
+            let lld_path = which::which("lld-link")
+                .ok()
                 .or_else(|| self.config.path.as_ref().map(PathBuf::from));
 
             let lld_path = lld_path.ok_or_else(|| {
-                "lld-link not found. Install via 'rustup component add llvm-tools' or LLVM".to_string()
+                "lld-link not found. Install via 'rustup component add llvm-tools' or LLVM"
+                    .to_string()
             })?;
 
             let version = self.get_linker_version(&lld_path, "--version");
@@ -403,7 +414,8 @@ impl LinkerSelector {
             })
         } else if cfg!(target_os = "macos") {
             // macOS: ld64.lld is the lld binary for Mach-O
-            let lld_path = which::which("ld64.lld").ok()
+            let lld_path = which::which("ld64.lld")
+                .ok()
                 .or_else(|| which::which("lld").ok())
                 .or_else(|| self.config.path.as_ref().map(PathBuf::from));
 
@@ -424,7 +436,8 @@ impl LinkerSelector {
             })
         } else {
             // Linux: lld for ELF
-            let lld_path = which::which("ld.lld").ok()
+            let lld_path = which::which("ld.lld")
+                .ok()
                 .or_else(|| which::which("lld").ok())
                 .or_else(|| self.config.path.as_ref().map(PathBuf::from));
 
@@ -448,7 +461,7 @@ impl LinkerSelector {
 
     /// Use the system default linker
     fn default_linker_ok(&self) -> Result<LinkerInfo, String> {
-        let name = if cfg!(target_os = "windows") {
+        let _name = if cfg!(target_os = "windows") {
             "link.exe"
         } else if cfg!(target_os = "macos") {
             "ld64"
@@ -493,10 +506,10 @@ impl LinkerSelector {
         });
 
         // Try mold (Linux/macOS only)
-        if !cfg!(target_os = "windows") {
-            if let Ok(info) = Self::try_mold_static() {
-                available.push(info);
-            }
+        if !cfg!(target_os = "windows")
+            && let Ok(info) = Self::try_mold_static()
+        {
+            available.push(info);
         }
 
         // Try lld (all platforms)
@@ -508,7 +521,8 @@ impl LinkerSelector {
     }
 
     fn try_mold_static() -> Result<LinkerInfo, String> {
-        let mold_path = which::which("mold").ok()
+        let mold_path = which::which("mold")
+            .ok()
             .ok_or_else(|| "mold not found".to_string())?;
 
         let version = Command::new(&mold_path)
@@ -516,7 +530,13 @@ impl LinkerSelector {
             .output()
             .ok()
             .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.lines().next().unwrap_or("mold unknown").trim().to_string());
+            .map(|s| {
+                s.lines()
+                    .next()
+                    .unwrap_or("mold unknown")
+                    .trim()
+                    .to_string()
+            });
 
         Ok(LinkerInfo {
             name: "mold".to_string(),
@@ -531,16 +551,19 @@ impl LinkerSelector {
 
     fn try_lld_static() -> Result<LinkerInfo, String> {
         let (lld_path, flag) = if cfg!(target_os = "windows") {
-            let p = which::which("lld-link").ok()
+            let p = which::which("lld-link")
+                .ok()
                 .ok_or_else(|| "lld-link not found".to_string())?;
             (p, "-C linker-flavor=lld-link".to_string())
         } else if cfg!(target_os = "macos") {
-            let p = which::which("ld64.lld").ok()
+            let p = which::which("ld64.lld")
+                .ok()
                 .or_else(|| which::which("lld").ok())
                 .ok_or_else(|| "lld not found".to_string())?;
             (p, "-C linker-flavor=ld64.lld".to_string())
         } else {
-            let p = which::which("ld.lld").ok()
+            let p = which::which("ld.lld")
+                .ok()
                 .or_else(|| which::which("lld").ok())
                 .ok_or_else(|| "lld not found".to_string())?;
             (p, "-C linker=clang -C linker-flavor=gnu-lld-cc".to_string())
@@ -655,9 +678,11 @@ impl LinkerInfo {
     }
 
     /// Format detailed info string
+    #[allow(dead_code)]
     pub fn detailed_info(&self) -> String {
-        let mut info = format!("{} ({})", 
-            self.name.bold(), 
+        let mut info = format!(
+            "{} ({})",
+            self.name.bold(),
             self.speed_tier.to_string().green()
         );
         if let Some(ref v) = self.version {
@@ -667,24 +692,43 @@ impl LinkerInfo {
             info.push_str(&format!("\n  Path: {}", p.display()));
         }
         if self.is_fast {
-            info.push_str(&format!("\n  Speed: {} faster than default", 
+            info.push_str(&format!(
+                "\n  Speed: {} faster than default",
                 match self.speed_tier {
                     LinkerSpeedTier::BlazingFast => "5-10x",
                     LinkerSpeedTier::Fast => "2-5x",
                     LinkerSpeedTier::Slow => "1x",
-                }.green()
+                }
+                .green()
             ));
         }
         if self.name == "mold" {
             info.push_str("\n  Optimizations:");
             info.push_str(&format!("\n    ICF: {}", self.mold_flags.icf));
-            info.push_str(&format!("\n    Relaxation: {}", 
-                if self.mold_flags.relax { "enabled".green() } else { "disabled".yellow() }.to_string()));
-            info.push_str(&format!("\n    Threads: {}", 
-                self.mold_flags.threads.map(|n| n.to_string()).unwrap_or_else(|| "auto".to_string())));
+            info.push_str(&format!(
+                "\n    Relaxation: {}",
+                if self.mold_flags.relax {
+                    "enabled".green()
+                } else {
+                    "disabled".yellow()
+                }
+            ));
+            info.push_str(&format!(
+                "\n    Threads: {}",
+                self.mold_flags
+                    .threads
+                    .map(|n| n.to_string())
+                    .unwrap_or_else(|| "auto".to_string())
+            ));
             info.push_str(&format!("\n    Build-ID: {}", self.mold_flags.build_id));
-            info.push_str(&format!("\n    RELRO: {}", 
-                if self.mold_flags.relro { "yes".green() } else { "no".yellow() }.to_string()));
+            info.push_str(&format!(
+                "\n    RELRO: {}",
+                if self.mold_flags.relro {
+                    "yes".green()
+                } else {
+                    "no".yellow()
+                }
+            ));
         }
         info
     }

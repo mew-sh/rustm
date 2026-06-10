@@ -11,7 +11,7 @@ pub fn execute(args: cli::BenchArgs) -> Result<(), String> {
     if args.run {
         let project_dir = RustmConfig::find_project_root()
             .ok_or("Not in a Rust project directory.".to_string())?;
-        
+
         let config = RustmConfig::load(&project_dir);
         let engine = BuildEngine::new(config);
 
@@ -45,7 +45,7 @@ pub fn execute(args: cli::BenchArgs) -> Result<(), String> {
     if args.compare {
         let project_dir = RustmConfig::find_project_root()
             .ok_or("Not in a Rust project directory.".to_string())?;
-        
+
         let profiles = vec![
             ("dev-fast", false),
             ("dev-check", false),
@@ -57,11 +57,11 @@ pub fn execute(args: cli::BenchArgs) -> Result<(), String> {
         ];
 
         println!("\nProfile Build Time Comparison\n");
-        println!("{:<15} {:<15} {}", "Profile", "Duration", "Speedup vs dev-fast");
+        println!("{:<15} {:<15} Speedup vs dev-fast", "Profile", "Duration");
         println!("{}", "─".repeat(55));
 
         let mut baseline: Option<u128> = None;
-        
+
         for (profile_name, release) in &profiles {
             let config = RustmConfig::load(&project_dir);
             let engine = BuildEngine::new(config);
@@ -95,17 +95,16 @@ pub fn execute(args: cli::BenchArgs) -> Result<(), String> {
                     let speedup = baseline
                         .map(|b| format!("{:.1}x", b as f64 / duration as f64))
                         .unwrap_or_else(|| "—".to_string());
-                    
-                    println!("{:<15} {:<15} {}", 
+
+                    println!(
+                        "{:<15} {:<15} {}",
                         profile_name,
                         format_duration(duration),
-                        speedup);
+                        speedup
+                    );
                 }
                 Err(_) => {
-                    println!("{:<15} {:<15} {}", 
-                        profile_name,
-                        "failed",
-                        "—");
+                    println!("{:<15} {:<15} —", profile_name, "failed");
                 }
             }
         }

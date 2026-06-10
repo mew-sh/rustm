@@ -12,6 +12,7 @@ use std::process::Command;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PgoStage {
     Generate,
+    #[allow(dead_code)]
     Run,
     Use,
 }
@@ -35,8 +36,10 @@ pub struct LlvmOptConfig {
     pub pgo_enabled: bool,
     pub pgo_stage: Option<PgoStage>,
     pub pgo_path: Option<String>,
+    #[allow(dead_code)]
     pub bolt_enabled: bool,
     pub bolt_path: Option<PathBuf>,
+    #[allow(dead_code)]
     pub autofdo_enabled: bool,
     pub optimization_remarks: bool,
     pub print_stats: bool,
@@ -64,50 +67,47 @@ impl Default for LlvmOptConfig {
 pub fn detect_cpu_features() -> Vec<String> {
     let mut features = Vec::new();
 
-    if let Ok(output) = Command::new("rustc")
-        .args(["--print", "cfg"])
-        .output()
+    if let Ok(output) = Command::new("rustc").args(["--print", "cfg"]).output()
+        && let Ok(stdout) = String::from_utf8(output.stdout)
     {
-        if let Ok(stdout) = String::from_utf8(output.stdout) {
-            #[cfg(target_arch = "x86_64")]
-            {
-                if stdout.contains("target_feature=\"avx2\"") {
-                    features.push("+avx2".to_string());
-                    features.push("+fma".to_string());
-                }
-                if stdout.contains("target_feature=\"sse4.2\"") {
-                    features.push("+sse4.2".to_string());
-                }
-                if stdout.contains("target_feature=\"bmi1\"") {
-                    features.push("+bmi1".to_string());
-                }
-                if stdout.contains("target_feature=\"bmi2\"") {
-                    features.push("+bmi2".to_string());
-                }
-                if stdout.contains("target_feature=\"popcnt\"") {
-                    features.push("+popcnt".to_string());
-                }
-                if stdout.contains("target_feature=\"lzcnt\"") {
-                    features.push("+lzcnt".to_string());
-                }
-                if stdout.contains("target_feature=\"avx512f\"") {
-                    features.push("+avx512f".to_string());
-                    features.push("+avx512cd".to_string());
-                    features.push("+avx512bw".to_string());
-                    features.push("+avx512dq".to_string());
-                    features.push("+avx512vl".to_string());
-                }
+        #[cfg(target_arch = "x86_64")]
+        {
+            if stdout.contains("target_feature=\"avx2\"") {
+                features.push("+avx2".to_string());
+                features.push("+fma".to_string());
             }
+            if stdout.contains("target_feature=\"sse4.2\"") {
+                features.push("+sse4.2".to_string());
+            }
+            if stdout.contains("target_feature=\"bmi1\"") {
+                features.push("+bmi1".to_string());
+            }
+            if stdout.contains("target_feature=\"bmi2\"") {
+                features.push("+bmi2".to_string());
+            }
+            if stdout.contains("target_feature=\"popcnt\"") {
+                features.push("+popcnt".to_string());
+            }
+            if stdout.contains("target_feature=\"lzcnt\"") {
+                features.push("+lzcnt".to_string());
+            }
+            if stdout.contains("target_feature=\"avx512f\"") {
+                features.push("+avx512f".to_string());
+                features.push("+avx512cd".to_string());
+                features.push("+avx512bw".to_string());
+                features.push("+avx512dq".to_string());
+                features.push("+avx512vl".to_string());
+            }
+        }
 
-            #[cfg(target_arch = "aarch64")]
-            {
-                features.push("+neon".to_string());
-                if stdout.contains("target_feature=\"sve\"") {
-                    features.push("+sve".to_string());
-                }
-                if stdout.contains("target_feature=\"sve2\"") {
-                    features.push("+sve2".to_string());
-                }
+        #[cfg(target_arch = "aarch64")]
+        {
+            features.push("+neon".to_string());
+            if stdout.contains("target_feature=\"sve\"") {
+                features.push("+sve".to_string());
+            }
+            if stdout.contains("target_feature=\"sve2\"") {
+                features.push("+sve2".to_string());
             }
         }
     }
@@ -122,7 +122,9 @@ pub struct LlvmOptimizer {
 
 impl LlvmOptimizer {
     pub fn new(config: &LlvmOptConfig) -> Self {
-        Self { config: config.clone() }
+        Self {
+            config: config.clone(),
+        }
     }
 
     /// Build RUSTFLAGS for LLVM optimizations
@@ -138,10 +140,10 @@ impl LlvmOptimizer {
 
         // 2. Target Features — fine-grained SIMD/feature control
         let mut all_features = self.config.target_features.clone();
-        if profile.opt_level.as_deref() == Some("3") || profile.opt_level.as_deref() == Some("2") {
-            if all_features.is_empty() {
-                all_features = detect_cpu_features();
-            }
+        if (profile.opt_level.as_deref() == Some("3") || profile.opt_level.as_deref() == Some("2"))
+            && all_features.is_empty()
+        {
+            all_features = detect_cpu_features();
         }
         if !all_features.is_empty() {
             flags.push(format!("-C target-feature={}", all_features.join(",")));
@@ -154,12 +156,18 @@ impl LlvmOptimizer {
         if self.config.pgo_enabled {
             match self.config.pgo_stage {
                 Some(PgoStage::Generate) => {
-                    let path = self.config.pgo_path.as_deref()
+                    let path = self
+                        .config
+                        .pgo_path
+                        .as_deref()
                         .unwrap_or("./target/pgo-profiles");
                     flags.push(format!("-C profile-generate={}", path));
                 }
                 Some(PgoStage::Use) => {
-                    let path = self.config.pgo_path.as_deref()
+                    let path = self
+                        .config
+                        .pgo_path
+                        .as_deref()
                         .unwrap_or("./target/pgo-profiles/merged.profdata");
                     flags.push(format!("-C profile-use={}", path));
                 }
@@ -192,6 +200,7 @@ impl LlvmOptimizer {
     }
 
     /// Generate environment variables for LLVM optimizations
+    #[allow(dead_code)]
     pub fn build_env_vars(&self) -> HashMap<String, String> {
         let mut env = HashMap::new();
 
@@ -199,13 +208,18 @@ impl LlvmOptimizer {
             env.insert("RUSTC_BOOTSTRAP".to_string(), "1".to_string());
         }
 
-        if self.config.pgo_enabled {
-            if let Some(PgoStage::Generate) = self.config.pgo_stage {
-                let path = self.config.pgo_path.as_deref()
-                    .unwrap_or("./target/pgo-profiles");
-                env.insert("LLVM_PROFILE_FILE".to_string(), 
-                    format!("{}/default_%p_%m.profraw", path));
-            }
+        if self.config.pgo_enabled
+            && let Some(PgoStage::Generate) = self.config.pgo_stage
+        {
+            let path = self
+                .config
+                .pgo_path
+                .as_deref()
+                .unwrap_or("./target/pgo-profiles");
+            env.insert(
+                "LLVM_PROFILE_FILE".to_string(),
+                format!("{}/default_%p_%m.profraw", path),
+            );
         }
 
         env
@@ -213,7 +227,8 @@ impl LlvmOptimizer {
 
     /// Check if BOLT is available
     pub fn detect_bolt(&self) -> Option<PathBuf> {
-        which::which("llvm-bolt").ok()
+        which::which("llvm-bolt")
+            .ok()
             .or_else(|| which::which("perf2bolt").ok())
     }
 
@@ -252,7 +267,8 @@ impl LlvmOptimizer {
         cmd.arg("-icf=1");
         cmd.arg("-use-gnu-stack");
 
-        let status = cmd.status()
+        let status = cmd
+            .status()
             .map_err(|e| format!("Failed to run BOLT: {}", e))?;
 
         if !status.success() {
@@ -264,13 +280,19 @@ impl LlvmOptimizer {
 
     /// Merge PGO profile data
     pub fn merge_pgo_profiles(&self, profile_dir: &Path, output_path: &Path) -> Result<(), String> {
-        let profdata = self.detect_llvm_profdata()
-            .ok_or_else(|| "llvm-profdata not found. Install: rustup component add llvm-tools".to_string())?;
+        let profdata = self.detect_llvm_profdata().ok_or_else(|| {
+            "llvm-profdata not found. Install: rustup component add llvm-tools".to_string()
+        })?;
 
         let profraw_files: Vec<_> = std::fs::read_dir(profile_dir)
             .map_err(|e| format!("Failed to read profile directory: {}", e))?
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map(|ext| ext == "profraw").unwrap_or(false))
+            .filter(|e| {
+                e.path()
+                    .extension()
+                    .map(|ext| ext == "profraw")
+                    .unwrap_or(false)
+            })
             .collect();
 
         if profraw_files.is_empty() {
@@ -285,7 +307,8 @@ impl LlvmOptimizer {
             cmd.arg(file.path().to_string_lossy().to_string());
         }
 
-        let status = cmd.status()
+        let status = cmd
+            .status()
             .map_err(|e| format!("Failed to run llvm-profdata: {}", e))?;
 
         if !status.success() {
@@ -371,11 +394,17 @@ pub fn print_llvm_info() -> String {
     let has_bolt = which::which("llvm-bolt").is_ok() || which::which("perf2bolt").is_ok();
 
     info.push_str("\n✅ Available Tools\n");
-    info.push_str(&format!("  {} llvm-profdata: {}\n",
+    info.push_str(&format!(
+        "  {} llvm-profdata: {}\n",
         if has_profdata { "✅" } else { "❌" },
-        if has_profdata { "installed" } else { "not found (rustup component add llvm-tools)" }
+        if has_profdata {
+            "installed"
+        } else {
+            "not found (rustup component add llvm-tools)"
+        }
     ));
-    info.push_str(&format!("  {} BOLT: {}\n",
+    info.push_str(&format!(
+        "  {} BOLT: {}\n",
         if has_bolt { "✅" } else { "❌" },
         if has_bolt { "installed" } else { "not found" }
     ));

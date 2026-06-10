@@ -197,7 +197,10 @@ impl CraneliftBackend {
         let stdout = String::from_utf8(output.stdout).ok()?;
 
         // Check if rustc_codegen_cranelift is in the installed components
-        if stdout.lines().any(|line| line.contains("rustc_codegen_cranelift")) {
+        if stdout
+            .lines()
+            .any(|line| line.contains("rustc_codegen_cranelift"))
+        {
             return Self::find_in_sysroot();
         }
 
@@ -216,10 +219,7 @@ impl CraneliftBackend {
         let sysroot = sysroot.trim();
 
         // Get the target triple
-        let target_output = Command::new("rustc")
-            .args(["-vV"])
-            .output()
-            .ok()?;
+        let target_output = Command::new("rustc").args(["-vV"]).output().ok()?;
 
         let target_stdout = String::from_utf8(target_output.stdout).ok()?;
         let target_triple = target_stdout
@@ -243,10 +243,14 @@ impl CraneliftBackend {
 
         // Search in sysroot for the cranelift codegen backend
         let search_paths = [
-            format!("{}/lib/rustlib/{}/codegen-backends/librustc_codegen_cranelift.{}",
-                sysroot, target_triple, dylib_ext),
-            format!("{}/lib/rustlib/{}/codegen-backends/rustc_codegen_cranelift.{}",
-                sysroot, target_triple, dylib_ext),
+            format!(
+                "{}/lib/rustlib/{}/codegen-backends/librustc_codegen_cranelift.{}",
+                sysroot, target_triple, dylib_ext
+            ),
+            format!(
+                "{}/lib/rustlib/{}/codegen-backends/rustc_codegen_cranelift.{}",
+                sysroot, target_triple, dylib_ext
+            ),
         ];
 
         for path in &search_paths {
@@ -258,10 +262,10 @@ impl CraneliftBackend {
 
         // Also check common Windows paths
         if cfg!(target_os = "windows") {
-            let win_paths = [
-                format!("{}/lib/rustlib/{}/codegen-backends/rustc_codegen_cranelift.dll",
-                    sysroot, target_triple),
-            ];
+            let win_paths = [format!(
+                "{}/lib/rustlib/{}/codegen-backends/rustc_codegen_cranelift.dll",
+                sysroot, target_triple
+            )];
             for path in &win_paths {
                 let p = PathBuf::from(path);
                 if p.exists() {
@@ -281,12 +285,12 @@ impl CraneliftBackend {
             .output()
             .ok();
 
-        if let Some(output) = output {
-            if output.status.success() {
-                let stdout = String::from_utf8(output.stdout).ok()?;
-                if !stdout.trim().is_empty() {
-                    return Some(stdout.trim().to_string());
-                }
+        if let Some(output) = output
+            && output.status.success()
+        {
+            let stdout = String::from_utf8(output.stdout).ok()?;
+            if !stdout.trim().is_empty() {
+                return Some(stdout.trim().to_string());
             }
         }
 
@@ -300,10 +304,10 @@ impl CraneliftBackend {
         for line in stdout.lines() {
             if line.contains("rustc_codegen_cranelift") {
                 // Extract version if present
-                if let Some(parens) = line.split('(').nth(1) {
-                    if let Some(ver) = parens.split(')').next() {
-                        return Some(format!("cranelift-{}", ver.trim()));
-                    }
+                if let Some(parens) = line.split('(').nth(1)
+                    && let Some(ver) = parens.split(')').next()
+                {
+                    return Some(format!("cranelift-{}", ver.trim()));
                 }
                 return Some("cranelift (installed)".to_string());
             }
@@ -353,7 +357,12 @@ impl CraneliftBackend {
     /// - Auto: use Cranelift for dev profiles, LLVM for release
     /// - Cranelift: always use Cranelift (error if unavailable)
     /// - Llvm: always use LLVM
-    pub fn should_use_cranelift(&self, backend: CodegenBackend, profile_name: &str, release: bool) -> bool {
+    pub fn should_use_cranelift(
+        &self,
+        backend: CodegenBackend,
+        profile_name: &str,
+        release: bool,
+    ) -> bool {
         match backend {
             CodegenBackend::Cranelift => {
                 if !self.info.available {
@@ -372,12 +381,16 @@ impl CraneliftBackend {
                     return false;
                 }
                 // Use Cranelift for dev/debug profiles
-                matches!(profile_name, "dev-fast" | "dev-check" | "dev-cranelift" | "dev")
+                matches!(
+                    profile_name,
+                    "dev-fast" | "dev-check" | "dev-cranelift" | "dev"
+                )
             }
         }
     }
 
     /// Print Cranelift architecture info
+    #[allow(dead_code)]
     pub fn print_architecture_info(&self) -> String {
         let mut info = String::new();
 
@@ -415,8 +428,10 @@ impl CraneliftBackend {
 
         info.push_str("📋 Availability:\n");
         if self.info.available {
-            info.push_str(&format!("  ✅ Cranelift: available ({})\n",
-                self.info.install_method.to_string().green()));
+            info.push_str(&format!(
+                "  ✅ Cranelift: available ({})\n",
+                self.info.install_method.to_string().green()
+            ));
             if let Some(ref path) = self.info.dylib_path {
                 info.push_str(&format!("  Path: {}\n", path.display()));
             }
@@ -427,7 +442,9 @@ impl CraneliftBackend {
             info.push_str("  ❌ Cranelift: not installed\n");
             info.push_str("\n  📦 Installation:\n");
             info.push_str("  Nightly:\n");
-            info.push_str("    rustup component add rustc_codegen_cranelift --toolchain nightly\n\n");
+            info.push_str(
+                "    rustup component add rustc_codegen_cranelift --toolchain nightly\n\n",
+            );
             info.push_str("  Or build from source:\n");
             info.push_str("    git clone https://github.com/rust-lang/rustc_codegen_cranelift\n");
             info.push_str("    cd rustc_codegen_cranelift\n");
@@ -460,9 +477,18 @@ mod tests {
 
     #[test]
     fn test_codegen_backend_from_str() {
-        assert_eq!("auto".parse::<CodegenBackend>().unwrap(), CodegenBackend::Auto);
-        assert_eq!("cranelift".parse::<CodegenBackend>().unwrap(), CodegenBackend::Cranelift);
-        assert_eq!("llvm".parse::<CodegenBackend>().unwrap(), CodegenBackend::Llvm);
+        assert_eq!(
+            "auto".parse::<CodegenBackend>().unwrap(),
+            CodegenBackend::Auto
+        );
+        assert_eq!(
+            "cranelift".parse::<CodegenBackend>().unwrap(),
+            CodegenBackend::Cranelift
+        );
+        assert_eq!(
+            "llvm".parse::<CodegenBackend>().unwrap(),
+            CodegenBackend::Llvm
+        );
         assert!("invalid".parse::<CodegenBackend>().is_err());
     }
 
@@ -487,4 +513,3 @@ mod tests {
         }
     }
 }
-

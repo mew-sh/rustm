@@ -10,7 +10,7 @@ pub fn execute(args: cli::BoltArgs) -> Result<(), String> {
 
     // Check if BOLT is available
     if optimizer.detect_bolt().is_none() {
-        println!("{} BOLT is not installed.", "⚠️".to_string());
+        println!("⚠️ BOLT is not installed.");
         println!("  Install from: https://github.com/llvm/llvm-project/tree/main/bolt");
         println!();
         println!("{}", optimizer.bolt_instructions());
@@ -30,7 +30,7 @@ pub fn execute(args: cli::BoltArgs) -> Result<(), String> {
                 return Err(format!("Profile not found: {}", profile));
             }
 
-            println!("{} Applying BOLT optimization...", "🔨".to_string());
+            println!("🔨 Applying BOLT optimization...");
             println!("  Binary: {}", binary);
             println!("  Profile: {}", profile);
             println!("  Output: {}", output);
@@ -38,7 +38,7 @@ pub fn execute(args: cli::BoltArgs) -> Result<(), String> {
 
             optimizer.run_bolt(&binary_path, Some(&profile_path), &output_path)?;
 
-            println!("{} BOLT optimization complete!", "✅".to_string());
+            println!("✅ BOLT optimization complete!");
             println!("  Optimized binary: {}", output.green());
             println!("  Expected improvement: 5-15% on top of PGO");
         }
@@ -50,14 +50,14 @@ pub fn execute(args: cli::BoltArgs) -> Result<(), String> {
                 return Err(format!("Binary not found: {}", binary));
             }
 
-            println!("{} Applying BOLT optimization (no profile)...", "🔨".to_string());
+            println!("🔨 Applying BOLT optimization (no profile)...");
             println!("  Binary: {}", binary);
             println!("  Output: {}", output);
             println!();
 
             optimizer.run_bolt(&binary_path, None, &output_path)?;
 
-            println!("{} BOLT optimization complete!", "✅".to_string());
+            println!("✅ BOLT optimization complete!");
             println!("  Optimized binary: {}", output.green());
             println!("  For better results, provide profile data with --profile");
         }

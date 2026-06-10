@@ -11,7 +11,7 @@ pub fn execute(args: cli::InitArgs) -> Result<(), String> {
     let config_path = project_dir.join("rustm.toml");
 
     if config_path.exists() && !args.force {
-        println!("{} rustm.toml already exists. Use --force to overwrite.", "⚠️".to_string());
+        println!("⚠️ rustm.toml already exists. Use --force to overwrite.");
         return Ok(());
     }
 
@@ -26,18 +26,27 @@ pub fn execute(args: cli::InitArgs) -> Result<(), String> {
         .map_err(|e| format!("Failed to write rustm.toml: {}", e))?;
 
     println!();
-    println!("{} rustm initialized!", "✨".to_string());
-    println!("  Config written to: {}", config_path.display().to_string().cyan());
+    println!("✨ rustm initialized!");
+    println!(
+        "  Config written to: {}",
+        config_path.display().to_string().cyan()
+    );
     println!();
-    println!("  {} Available profiles:", "⚡".to_string());
+    println!("  ⚡ Available profiles:");
     println!("    {} — Fast dev iteration", "dev-fast".cyan());
     println!("    {} — Fastest cargo check", "dev-check".cyan());
     println!("    {} — Fast release with thin LTO", "release-fast".cyan());
-    println!("    {} — Maximum optimization with fat LTO", "release-max".cyan());
+    println!(
+        "    {} — Maximum optimization with fat LTO",
+        "release-max".cyan()
+    );
     println!("    {} — Minimal binary size", "size-opt".cyan());
     println!("    {} — Good compile/runtime tradeoff", "balanced".cyan());
     println!();
-    println!("  {} Run {} to build with optimizations!", "💡".to_string(), "rustm build".green().bold());
+    println!(
+        "  💡 Run {} to build with optimizations!",
+        "rustm build".green().bold()
+    );
 
     Ok(())
 }
@@ -47,7 +56,10 @@ fn generate_preset_config(preset: &str) -> Result<String, String> {
         "fast" => Ok(generate_fast_preset()),
         "release" => Ok(generate_release_preset()),
         "minimal" => Ok(generate_minimal_preset()),
-        _ => Err(format!("Unknown preset: '{}'. Available: fast, release, minimal", preset)),
+        _ => Err(format!(
+            "Unknown preset: '{}'. Available: fast, release, minimal",
+            preset
+        )),
     }
 }
 
@@ -72,7 +84,8 @@ preferred = "auto"
 
 [parallel]
 jobs = 0
-"#.to_string()
+"#
+    .to_string()
 }
 
 fn generate_release_preset() -> String {
@@ -96,7 +109,8 @@ preferred = "auto"
 
 [parallel]
 jobs = 0
-"#.to_string()
+"#
+    .to_string()
 }
 
 fn generate_minimal_preset() -> String {
@@ -117,5 +131,6 @@ preferred = "default"
 
 [parallel]
 jobs = 0
-"#.to_string()
+"#
+    .to_string()
 }

@@ -4,14 +4,14 @@
 //! Provides built-in presets and supports custom profiles from config.
 //!
 //! Default profile is "fastest" — the maximum optimization stack:
-//!   target-cpu=native + target-feature auto-detect + thin LTO + 
+//!   target-cpu=native + target-feature auto-detect + thin LTO +
 //!   codegen-units=16 + panic=abort + strip + mold ICF=safe + relaxation
 
 use crate::core::config::ProfilePreset;
 use std::collections::HashMap;
 
 /// Built-in profile presets
-/// 
+///
 /// The "fastest" profile is the default — it stacks all available optimizations:
 ///   - target-cpu=native (AVX2/FMA/NEON auto-detect)
 ///   - thin LTO (cross-module optimization)
@@ -34,32 +34,36 @@ pub fn builtin_profiles() -> HashMap<String, ProfilePreset> {
     // strip=symbols:         smaller binary
     // ICF=safe:              merge identical functions (mold)
     // relaxation:            GOT→PC-relative (mold)
-    profiles.insert("fastest".to_string(), ProfilePreset {
-        lto: Some("thin".to_string()),
-        codegen_units: Some(16),
-        opt_level: Some("3".to_string()),
-        strip: Some(true),
-        debug: None,
-        panic: Some("abort".to_string()),
-        incremental: Some(false),
-        rustflags: vec![
-            "-C target-cpu=native".to_string(),
-        ],
-    });
+    profiles.insert(
+        "fastest".to_string(),
+        ProfilePreset {
+            lto: Some("thin".to_string()),
+            codegen_units: Some(16),
+            opt_level: Some("3".to_string()),
+            strip: Some(true),
+            debug: None,
+            panic: Some("abort".to_string()),
+            incremental: Some(false),
+            rustflags: vec!["-C target-cpu=native".to_string()],
+        },
+    );
 
     // ═══════════════════════════════════════════════════════
     // DEV-FAST — Fastest compile, no optimizations
     // ═══════════════════════════════════════════════════════
-    profiles.insert("dev-fast".to_string(), ProfilePreset {
-        lto: Some("none".to_string()),
-        codegen_units: Some(256),
-        opt_level: Some("0".to_string()),
-        strip: Some(false),
-        debug: Some("2".to_string()),
-        panic: None,
-        incremental: Some(true),
-        rustflags: vec![],
-    });
+    profiles.insert(
+        "dev-fast".to_string(),
+        ProfilePreset {
+            lto: Some("none".to_string()),
+            codegen_units: Some(256),
+            opt_level: Some("0".to_string()),
+            strip: Some(false),
+            debug: Some("2".to_string()),
+            panic: None,
+            incremental: Some(true),
+            rustflags: vec![],
+        },
+    );
 
     // ═══════════════════════════════════════════════════════════
     // DEV-CRANELIFT — Ultra-fast compile with Cranelift backend
@@ -68,86 +72,104 @@ pub fn builtin_profiles() -> HashMap<String, ProfilePreset> {
     // Ideal for rapid iteration in development.
     // Binary performance: ~80-95% of LLVM, but compiles much faster.
     // Requires: rustup component add rustc_codegen_cranelift --toolchain nightly
-    profiles.insert("dev-cranelift".to_string(), ProfilePreset {
-        lto: Some("none".to_string()),
-        codegen_units: Some(256),
-        opt_level: Some("0".to_string()),
-        strip: Some(false),
-        debug: Some("2".to_string()),
-        panic: None,
-        incremental: Some(true),
-        rustflags: vec![],  // Cranelift backend is injected by engine
-    });
+    profiles.insert(
+        "dev-cranelift".to_string(),
+        ProfilePreset {
+            lto: Some("none".to_string()),
+            codegen_units: Some(256),
+            opt_level: Some("0".to_string()),
+            strip: Some(false),
+            debug: Some("2".to_string()),
+            panic: None,
+            incremental: Some(true),
+            rustflags: vec![], // Cranelift backend is injected by engine
+        },
+    );
 
     // DEV-CHECK — Fastest cargo check (no codegen)
-    profiles.insert("dev-check".to_string(), ProfilePreset {
-        lto: Some("none".to_string()),
-        codegen_units: Some(256),
-        opt_level: Some("0".to_string()),
-        strip: Some(false),
-        debug: Some("0".to_string()),
-        panic: None,
-        incremental: Some(true),
-        rustflags: vec![],
-    });
+    profiles.insert(
+        "dev-check".to_string(),
+        ProfilePreset {
+            lto: Some("none".to_string()),
+            codegen_units: Some(256),
+            opt_level: Some("0".to_string()),
+            strip: Some(false),
+            debug: Some("0".to_string()),
+            panic: None,
+            incremental: Some(true),
+            rustflags: vec![],
+        },
+    );
 
     // ═══════════════════════════════════════════════════════
     // RELEASE-FAST — Fast release with thin LTO
     // ═══════════════════════════════════════════════════════
-    profiles.insert("release-fast".to_string(), ProfilePreset {
-        lto: Some("thin".to_string()),
-        codegen_units: Some(16),
-        opt_level: Some("3".to_string()),
-        strip: Some(true),
-        debug: None,
-        panic: Some("abort".to_string()),
-        incremental: Some(false),
-        rustflags: vec!["-C target-cpu=native".to_string()],
-    });
+    profiles.insert(
+        "release-fast".to_string(),
+        ProfilePreset {
+            lto: Some("thin".to_string()),
+            codegen_units: Some(16),
+            opt_level: Some("3".to_string()),
+            strip: Some(true),
+            debug: None,
+            panic: Some("abort".to_string()),
+            incremental: Some(false),
+            rustflags: vec!["-C target-cpu=native".to_string()],
+        },
+    );
 
     // ═══════════════════════════════════════════════════════
     // RELEASE-MAX — Maximum runtime performance
     // ═══════════════════════════════════════════════════════
     // Uses fat LTO + codegen-units=1 for absolute best runtime
     // Slowest to compile, but fastest binary
-    profiles.insert("release-max".to_string(), ProfilePreset {
-        lto: Some("fat".to_string()),
-        codegen_units: Some(1),
-        opt_level: Some("3".to_string()),
-        strip: Some(true),
-        debug: None,
-        panic: Some("abort".to_string()),
-        incremental: Some(false),
-        rustflags: vec!["-C target-cpu=native".to_string()],
-    });
+    profiles.insert(
+        "release-max".to_string(),
+        ProfilePreset {
+            lto: Some("fat".to_string()),
+            codegen_units: Some(1),
+            opt_level: Some("3".to_string()),
+            strip: Some(true),
+            debug: None,
+            panic: Some("abort".to_string()),
+            incremental: Some(false),
+            rustflags: vec!["-C target-cpu=native".to_string()],
+        },
+    );
 
     // ═══════════════════════════════════════════════════════
     // SIZE-OPT — Minimal binary size
     // ═══════════════════════════════════════════════════════
-    profiles.insert("size-opt".to_string(), ProfilePreset {
-        lto: Some("thin".to_string()),
-        codegen_units: Some(1),
-        opt_level: Some("z".to_string()),
-        strip: Some(true),
-        debug: None,
-        panic: Some("abort".to_string()),
-        incremental: Some(false),
-        rustflags: vec![],
-    });
+    profiles.insert(
+        "size-opt".to_string(),
+        ProfilePreset {
+            lto: Some("thin".to_string()),
+            codegen_units: Some(1),
+            opt_level: Some("z".to_string()),
+            strip: Some(true),
+            debug: None,
+            panic: Some("abort".to_string()),
+            incremental: Some(false),
+            rustflags: vec![],
+        },
+    );
 
     // ═══════════════════════════════════════════════════════
     // BALANCED — Good tradeoff between compile time and runtime
     // ═══════════════════════════════════════════════════════
-    profiles.insert("balanced".to_string(), ProfilePreset {
-        lto: Some("thin".to_string()),
-        codegen_units: Some(16),
-        opt_level: Some("2".to_string()),
-        strip: Some(true),
-        debug: Some("line-tables-only".to_string()),
-        panic: None,
-        incremental: Some(true),
-        rustflags: vec![],
-    });
+    profiles.insert(
+        "balanced".to_string(),
+        ProfilePreset {
+            lto: Some("thin".to_string()),
+            codegen_units: Some(16),
+            opt_level: Some("2".to_string()),
+            strip: Some(true),
+            debug: Some("line-tables-only".to_string()),
+            panic: None,
+            incremental: Some(true),
+            rustflags: vec![],
+        },
+    );
 
     profiles
 }
@@ -221,7 +243,9 @@ impl ProfileResolver {
             return Some(format_profile(name, profile));
         }
         let builtins = builtin_profiles();
-        builtins.get(name).map(|profile| format_profile(name, profile))
+        builtins
+            .get(name)
+            .map(|profile| format_profile(name, profile))
     }
 
     /// Describe all profiles
@@ -235,18 +259,33 @@ impl ProfileResolver {
         }
 
         all.sort_by(|(a, _), (b, _)| a.cmp(b));
-        all.iter().map(|(name, profile)| format_profile(name, profile)).collect()
+        all.iter()
+            .map(|(name, profile)| format_profile(name, profile))
+            .collect()
     }
 }
 
 fn format_profile(name: &str, profile: &ProfilePreset) -> String {
     let lto = profile.lto.as_deref().unwrap_or("default");
-    let cgu = profile.codegen_units.map(|u| u.to_string()).unwrap_or_else(|| "default".to_string());
+    let cgu = profile
+        .codegen_units
+        .map(|u| u.to_string())
+        .unwrap_or_else(|| "default".to_string());
     let opt = profile.opt_level.as_deref().unwrap_or("default");
-    let strip = profile.strip.map(|s| if s { "yes" } else { "no" }).unwrap_or("default");
+    let strip = profile
+        .strip
+        .map(|s| if s { "yes" } else { "no" })
+        .unwrap_or("default");
     let panic = profile.panic.as_deref().unwrap_or("default");
-    let inc = profile.incremental.map(|s| if s { "yes" } else { "no" }).unwrap_or("default");
-    let flags = if profile.rustflags.is_empty() { "none".to_string() } else { profile.rustflags.join(" ") };
+    let inc = profile
+        .incremental
+        .map(|s| if s { "yes" } else { "no" })
+        .unwrap_or("default");
+    let flags = if profile.rustflags.is_empty() {
+        "none".to_string()
+    } else {
+        profile.rustflags.join(" ")
+    };
 
     let badge = if name == "fastest" { " ⚡DEFAULT" } else { "" };
 
